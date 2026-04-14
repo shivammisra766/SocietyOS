@@ -19,10 +19,12 @@ export default function AdminLayout() {
           </div>
           
           <div className="flex items-center gap-6">
-            <button className="relative p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all border-none bg-transparent cursor-pointer">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>
-            </button>
+            {user?.role !== 'ADMIN' && (
+              <button className="relative p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all border-none bg-transparent cursor-pointer">
+                <span className="material-symbols-outlined">notifications</span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>
+              </button>
+            )}
             <div className="w-px h-8 bg-white/10"></div>
             <div className="flex items-center gap-4">
               <div className="text-right">

@@ -118,7 +118,7 @@ export default function Login() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="relative group w-full flex justify-center items-center py-4 px-6 bg-white text-black font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.15)] disabled:opacity-70 disabled:hover:scale-100"
+                className=" cursor-pointer relative group w-full flex justify-center items-center py-4 px-6 bg-white text-black font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.15)] disabled:opacity-70 disabled:hover:scale-100"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   {loading ? 'Authenticating...' : 'Sign In'}

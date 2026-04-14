@@ -1,262 +1,188 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Switch,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ResidentHeader from '../../components/ResidentHeader';
+import api from '../../lib/api';
 
-interface ContactPerson {
-  id: string;
-  name: string;
-  schedule: string;
-  enabled: boolean;
+interface EntryLog {
+  id: string; visitorName: string; visitorType: string;
+  status: string; exitTime: string | null; entryTime: string;
+  flat?: { number: string };
 }
 
-const regularGuests: ContactPerson[] = [
-  { id: '1', name: 'Priya Sharma', schedule: 'Daily • 9 AM – 6 PM', enabled: true },
-  { id: '2', name: 'Ravi Kumar', schedule: 'Mon, Wed, Fri • 10 AM – 2 PM', enabled: true },
-  { id: '3', name: 'Anita Desai', schedule: 'Weekends • All Day', enabled: false },
-  { id: '4', name: 'Suresh Nair', schedule: 'Tue, Thu • 11 AM – 5 PM', enabled: true },
-];
+const TYPE_LABEL: Record<string, string> = {
+  DELIVERY: 'Delivery', GUEST: 'Guest', CAB: 'Cab',
+  HOUSEHOLD_WORKER: 'Staff', SERVICE_PROFESSIONAL: 'Service',
+};
 
-const householdStaff: ContactPerson[] = [
-  { id: '5', name: 'Lakshmi Devi', schedule: 'Mon – Sat • 7 AM – 12 PM', enabled: true },
-  { id: '6', name: 'Ramesh Yadav', schedule: 'Daily • 6 PM – 9 PM', enabled: true },
-  { id: '7', name: 'Sunita Bai', schedule: 'Mon, Wed, Fri • 8 AM – 11 AM', enabled: false },
-  { id: '8', name: 'Gopal Singh', schedule: 'Weekdays • 9 AM – 5 PM', enabled: true },
-  { id: '9', name: 'Kamla Devi', schedule: 'Sat, Sun • 10 AM – 2 PM', enabled: true },
-];
+const STATUS_CONFIG: Record<string, { text: string; badge: string }> = {
+  APPROVED: { text: '#25E0A7', badge: 'rgba(37,224,167,0.15)' },
+  SCANNED:  { text: '#818cf8', badge: 'rgba(99,102,241,0.15)' },
+  PENDING:  { text: '#fbbf24', badge: 'rgba(251,191,36,0.15)' },
+  REJECTED: { text: '#EE7D77', badge: 'rgba(238,125,119,0.15)' },
+  EXITED:   { text: '#64748b', badge: 'rgba(100,116,139,0.15)' },
+};
 
 export default function ResidentVisitors() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'guests' | 'staff'>('guests');
-  const [guestToggles, setGuestToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(regularGuests.map((g) => [g.id, g.enabled]))
-  );
-  const [staffToggles, setStaffToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(householdStaff.map((s) => [s.id, s.enabled]))
-  );
-  const fabScale = useRef(new Animated.Value(1)).current;
+  const [entries,    setEntries]    = useState<EntryLog[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tab,        setTab]        = useState<'all' | 'active' | 'exited'>('all');
 
-  const contacts = activeTab === 'guests' ? regularGuests : householdStaff;
-  const toggles = activeTab === 'guests' ? guestToggles : staffToggles;
-  const setToggles = activeTab === 'guests' ? setGuestToggles : setStaffToggles;
+  const fetchEntries = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    try {
+      const res = await api.get('/entry/my-flat');
+      setEntries(res.data.data || []);
+    } catch {}
+    finally { setLoading(false); setRefreshing(false); }
+  }, []);
 
-  const handleFabPressIn = () => {
-    Animated.spring(fabScale, { toValue: 0.9, useNativeDriver: true, tension: 300, friction: 20 }).start();
-  };
+  useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const handleFabPressOut = () => {
-    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
-  };
+  const filtered = entries.filter(e => {
+    if (tab === 'active') return !e.exitTime && (e.status === 'APPROVED' || e.status === 'SCANNED');
+    if (tab === 'exited') return !!e.exitTime;
+    return true;
+  });
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#090e18', '#0e1322', '#090e18']}
-        style={StyleSheet.absoluteFill}
-      />
-
+      <LinearGradient colors={['#090e18', '#0e1322', '#090e18']} style={StyleSheet.absoluteFill} />
       <ResidentHeader />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchEntries(true)} tintColor="#53FEC2" />
+        }
       >
-        {/* Hero heading */}
         <Text style={styles.eyebrow}>ACCESS CONTROL</Text>
-        <Text style={styles.heroTitle}>Access{'\n'}Management</Text>
+        <Text style={styles.heroTitle}>My Visitors</Text>
 
-        {/* Pill Tabs */}
+        {/* Tab Pills */}
         <View style={styles.pillRow}>
-          <TouchableOpacity
-            style={[styles.pill, activeTab === 'guests' && styles.pillActive]}
-            onPress={() => setActiveTab('guests')}
-          >
-            <Text style={[styles.pillText, activeTab === 'guests' && styles.pillTextActive]}>
-              Regular Guests
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.pill, activeTab === 'staff' && styles.pillActive]}
-            onPress={() => setActiveTab('staff')}
-          >
-            <Text style={[styles.pillText, activeTab === 'staff' && styles.pillTextActive]}>
-              Household Staff
-            </Text>
-          </TouchableOpacity>
+          {(['all', 'active', 'exited'] as const).map(t => (
+            <TouchableOpacity
+              key={t}
+              style={[styles.pill, tab === t && styles.pillActive]}
+              onPress={() => setTab(t)}
+            >
+              <Text style={[styles.pillText, tab === t && styles.pillTextActive]}>
+                {t === 'all' ? 'All History' : t === 'active' ? 'Currently Inside' : 'Exited'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Person Cards */}
-        {contacts.map((person) => (
-          <View key={person.id} style={styles.personCard}>
-            <View style={styles.personLeft}>
-              <View style={styles.personAvatar}>
-                <Text style={styles.avatarInitials}>
-                  {person.name.split(' ').map((n) => n[0]).join('')}
+        {/* Create pass FAB hint */}
+        <TouchableOpacity
+          style={styles.createPassRow}
+          onPress={() => router.push('/(resident)/create-pass')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.createPassIcon}>
+            <MaterialIcons name="add" size={20} color="#53FEC2" />
+          </View>
+          <Text style={styles.createPassText}>Create new visitor pass</Text>
+          <MaterialIcons name="chevron-right" size={18} color="#6c7a8f" />
+        </TouchableOpacity>
+
+        {/* Entry list */}
+        {loading ? (
+          <ActivityIndicator color="#53FEC2" style={{ marginTop: 40 }} />
+        ) : filtered.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="people-outline" size={44} color="#25293A" />
+            <Text style={styles.emptyText}>No entries in this category</Text>
+          </View>
+        ) : filtered.map(entry => {
+          const isExited = !!entry.exitTime;
+          const displayStatus = isExited ? 'EXITED' : entry.status;
+          const cfg = STATUS_CONFIG[displayStatus] || STATUS_CONFIG.PENDING;
+          const entryTime = new Date(entry.entryTime).toLocaleString([], {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          });
+          const exitTime = entry.exitTime
+            ? new Date(entry.exitTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : null;
+          const initials = entry.visitorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
+
+          return (
+            <View key={entry.id} style={styles.entryCard}>
+              <View style={styles.entryLeft}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{initials.toUpperCase()}</Text>
+                </View>
+                <View style={styles.entryInfo}>
+                  <Text style={styles.entryName}>{entry.visitorName}</Text>
+                  <Text style={styles.entrySub}>
+                    {TYPE_LABEL[entry.visitorType] || entry.visitorType?.replace(/_/g, ' ')}
+                    {entry.flat?.number ? ` · Flat ${entry.flat.number}` : ''}
+                  </Text>
+                  <Text style={styles.entryTime}>In: {entryTime}{exitTime ? `  ·  Out: ${exitTime}` : ''}</Text>
+                </View>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: cfg.badge }]}>
+                <Text style={[styles.statusText, { color: cfg.text }]}>
+                  {isExited ? 'Exited' : displayStatus}
                 </Text>
               </View>
-              <View style={styles.personInfo}>
-                <Text style={styles.personName}>{person.name}</Text>
-                <Text style={styles.personSchedule}>{person.schedule}</Text>
-              </View>
             </View>
-            <Switch
-              value={toggles[person.id]}
-              onValueChange={(val) => setToggles((prev) => ({ ...prev, [person.id]: val }))}
-              trackColor={{ false: 'rgba(255,255,255,0.08)', true: 'rgba(37,224,167,0.3)' }}
-              thumbColor={toggles[person.id] ? '#25E0A7' : '#6c7a8f'}
-              ios_backgroundColor="rgba(255,255,255,0.08)"
-            />
-          </View>
-        ))}
+          );
+        })}
 
-        {/* Bottom spacer for tab bar + FAB */}
-        <View style={{ height: 120 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* FAB */}
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPressIn={handleFabPressIn}
-          onPressOut={handleFabPressOut}
-          onPress={() => router.push('/(resident)/create-pass')}
-          activeOpacity={1}
-        >
-          <MaterialIcons name="add" size={30} color="#090E18" />
-        </TouchableOpacity>
-      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#090e18',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
+  container:     { flex: 1, backgroundColor: '#090e18' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16 },
+  eyebrow:   { fontFamily: 'Inter-Medium', fontSize: 10, letterSpacing: 3, color: '#53FEC2', marginBottom: 8 },
+  heroTitle: { fontFamily: 'Inter-Bold', fontSize: 32, color: '#DEE1F7', marginBottom: 20 },
 
-  /* ── Hero ── */
-  eyebrow: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 10,
-    letterSpacing: 3,
-    color: '#53FEC2',
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 36,
-    lineHeight: 42,
-    color: '#DEE1F7',
-    marginBottom: 24,
-  },
+  pillRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  pill:         { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  pillActive:   { backgroundColor: '#34495E', borderColor: 'rgba(255,255,255,0.05)' },
+  pillText:     { fontFamily: 'Inter-Medium', fontSize: 13, color: '#9BABCE' },
+  pillTextActive:{ color: '#DBE5FF' },
 
-  /* ── Pill Tabs ── */
-  pillRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+  createPassRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(83,254,194,0.05)',
+    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(83,254,194,0.15)',
+    paddingHorizontal: 16, paddingVertical: 12, marginBottom: 20,
   },
-  pill: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  pillActive: {
-    backgroundColor: '#34495E',
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  pillText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: '#9BABCE',
-  },
-  pillTextActive: {
-    color: '#DBE5FF',
-  },
+  createPassIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(83,254,194,0.1)', alignItems: 'center', justifyContent: 'center' },
+  createPassText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#DEE1F7', flex: 1 },
 
-  /* ── Person Card ── */
-  personCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(20,25,35,0.5)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    padding: 16,
-    marginBottom: 10,
+  entryCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(20,25,35,0.5)', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    padding: 14, marginBottom: 10,
   },
-  personLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  personAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#25293A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  avatarInitials: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#9BABCE',
-  },
-  personInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  personName: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 15,
-    color: '#DEE1F7',
-  },
-  personSchedule: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    color: '#9BABCE',
-  },
+  entryLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  avatar:     { width: 44, height: 44, borderRadius: 12, backgroundColor: '#25293A', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#9BABCE' },
+  entryInfo:  { flex: 1, gap: 2 },
+  entryName:  { fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#DEE1F7' },
+  entrySub:   { fontFamily: 'Inter-Regular', fontSize: 12, color: '#9BABCE' },
+  entryTime:  { fontFamily: 'Inter-Regular', fontSize: 10, color: '#4a5568', marginTop: 2 },
+  statusBadge:{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
+  statusText: { fontFamily: 'Inter-Bold', fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase' as const },
 
-  /* ── FAB ── */
-  fabContainer: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    zIndex: 70,
-  },
-  fab: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#25E0A7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#25E0A7',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 25,
-    elevation: 12,
-  },
+  emptyState: { alignItems: 'center', gap: 10, paddingVertical: 48 },
+  emptyText:  { fontFamily: 'Inter-Regular', fontSize: 14, color: '#4a5568' },
 });

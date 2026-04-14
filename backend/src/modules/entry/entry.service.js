@@ -161,7 +161,7 @@ const getFilteredEntries = async (societyId, filters = {}) => {
       resident: { select: { name: true } }
     },
     orderBy: { entryTime: 'desc' },
-    take: 200,
+    take: filters.limit ? parseInt(filters.limit) : 200,
   });
 };
 

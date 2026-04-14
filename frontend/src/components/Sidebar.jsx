@@ -37,9 +37,7 @@ export default function Sidebar() {
       
       <div className="p-8 pb-6 relative z-10">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)] border border-indigo-300/20">
-            <span className="material-symbols-outlined text-white text-[28px]">apartment</span>
-          </div>
+          <img src="/icon.png" alt="appartment" className='w-12 h-12 rounded-xl' />
           <div>
             <h1 className="text-2xl font-black bg-gradient-to-r from-white via-indigo-100 to-slate-400 bg-clip-text text-transparent tracking-tight">SocietyOS</h1>
             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-0.5">Admin Portal</p>

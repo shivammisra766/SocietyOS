@@ -68,6 +68,48 @@ app.get('/api/dashboard/stats', authenticate, authorize('ADMIN'), asyncHandler(a
   });
 }));
 
+// Dashboard chart data endpoint
+app.get('/api/dashboard/charts', authenticate, authorize('ADMIN'), asyncHandler(async (req, res) => {
+  const societyId = req.user.societyId;
+
+  // Last 7 days gate activity
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+
+  const gateActivity = await Promise.all(
+    days.map(async (dayStart) => {
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const count = await prisma.entryLog.count({
+        where: { societyId, entryTime: { gte: dayStart, lt: dayEnd } }
+      });
+      return {
+        day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
+        entries: count
+      };
+    })
+  );
+
+  // Complaint breakdown by category
+  const categories = ['PLUMBING', 'ELECTRICAL', 'CLEANING', 'SECURITY', 'OTHER'];
+  const complaintBreakdown = await Promise.all(
+    categories.map(async (category) => {
+      const count = await prisma.complaint.count({ where: { societyId, category } });
+      return { name: category.charAt(0) + category.slice(1).toLowerCase(), value: count };
+    })
+  );
+
+  res.json({
+    success: true,
+    data: { gateActivity, complaintBreakdown }
+  });
+}));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'SocietyOS API is running' });

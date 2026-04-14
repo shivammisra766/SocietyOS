@@ -148,7 +148,7 @@ export default function AdminSettings() {
                     <select
                       value={role}
                       onChange={e => { setRole(e.target.value); setSuccessMsg(''); setErrorMsg(''); }}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium appearance-none cursor-pointer"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium appearance-none cursor-pointer"
                       style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center'}}
                     >
                       <option value="RESIDENT">Resident</option>
@@ -197,7 +197,7 @@ export default function AdminSettings() {
                         value={flatId}
                         onChange={e => setFlatId(e.target.value)}
                         required
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium appearance-none cursor-pointer"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium appearance-none cursor-pointer"
                         style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center'}}
                       >
                         <option value="">Select a flat...</option>
