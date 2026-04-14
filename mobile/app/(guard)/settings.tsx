@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SettingItem {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -37,11 +38,12 @@ const appSettings: SettingItem[] = [
 export default function GuardSettings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => router.replace('/(auth)') },
+      { text: 'Logout', style: 'destructive', onPress: () => logout() },
     ]);
   };
 
@@ -62,10 +64,10 @@ export default function GuardSettings() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>RS</Text>
+            <Text style={styles.profileAvatarText}>{user?.name?.split(' ').map(n => n[0]).join('') || 'GD'}</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Rajendra Singh</Text>
+            <Text style={styles.profileName}>{user?.name || 'Guard'}</Text>
             <Text style={styles.profileRole}>Security Officer</Text>
             <View style={styles.badgeRow}>
               <View style={styles.idBadge}>

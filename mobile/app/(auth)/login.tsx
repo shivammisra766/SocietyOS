@@ -15,32 +15,30 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../../hooks/useAuth';
 
 const { width } = Dimensions.get('window');
 
 type Role = 'resident' | 'guard' | 'service';
 
-const roleConfig: Record<Role, { label: string; accent: string; headline: string; sub: string; dest: string }> = {
+const roleConfig: Record<Role, { label: string; accent: string; headline: string; sub: string }> = {
   resident: {
     label: 'Resident',
     accent: '#dbe5ff',
     headline: 'Welcome Home',
     sub: 'Silent Authority Protocol — Residential',
-    dest: '/(resident)',
   },
   guard: {
     label: 'Security',
     accent: '#53fec2',
     headline: 'ShieldGuard Auth',
     sub: 'Silent Authority Protocol — Security Clearance II',
-    dest: '/(guard)',
   },
   service: {
     label: 'Service Staff',
     accent: '#9babce',
     headline: 'Staff Auth',
     sub: 'Silent Authority Protocol — Service Clearance III',
-    dest: '/(service)',
   },
 };
 
@@ -48,11 +46,13 @@ export default function LoginScreen() {
   const router = useRouter();
   const { role } = useLocalSearchParams<{ role: Role }>();
   const config = roleConfig[role ?? 'resident'];
+  const { login } = useAuth();
 
-  const [loginId, setLoginId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const buttonScale = useRef(new Animated.Value(1)).current;
 
@@ -64,13 +64,27 @@ export default function LoginScreen() {
     Animated.spring(buttonScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start();
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    setError(null);
     setLoading(true);
-    // Mock auth — navigate directly to role-specific tab group
-    setTimeout(() => {
+
+    try {
+      await login(email.trim(), password);
+      // Navigation is handled by AuthContext after successful login
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Authentication failed. Please try again.';
+      setError(message);
+    } finally {
       setLoading(false);
-      router.replace(config.dest as any);
-    }, 600);
+    }
   };
 
   return (
@@ -121,22 +135,35 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>{config.sub}</Text>
         </View>
 
+        {/* Error banner */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <MaterialIcons name="error-outline" size={16} color="#EE7D77" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         {/* Form card */}
         <View style={styles.formCard}>
-          {/* Login ID */}
+          {/* Email */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Login ID</Text>
+            <Text style={styles.fieldLabel}>Email</Text>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your login ID"
+                placeholder="Enter your email"
                 placeholderTextColor="#9aab9e"
-                value={loginId}
-                onChangeText={setLoginId}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) setError(null);
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
               />
-              <MaterialIcons name="person-outline" size={18} color="#6c7a8f" style={styles.inputIcon} />
+              <MaterialIcons name="email" size={18} color="#6c7a8f" style={styles.inputIcon} />
             </View>
           </View>
 
@@ -149,8 +176,12 @@ export default function LoginScreen() {
                 placeholder="Enter your password"
                 placeholderTextColor="#9aab9e"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (error) setError(null);
+                }}
                 secureTextEntry={!showPassword}
+                textContentType="password"
               />
               <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.inputIcon}>
                 <MaterialIcons
@@ -178,7 +209,7 @@ export default function LoginScreen() {
             disabled={loading}
           >
             <LinearGradient
-              colors={['#1e3a5f', '#152641']}
+              colors={loading ? ['#152641', '#152641'] : ['#1e3a5f', '#152641']}
               style={styles.loginButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -210,7 +241,7 @@ export default function LoginScreen() {
           </View>
           <View style={styles.securityItem}>
             <MaterialIcons name="security" size={14} color="#3e4759" />
-            <Text style={styles.securityText}>Zero-knowledge auth</Text>
+            <Text style={styles.securityText}>bcrypt hashed</Text>
           </View>
         </View>
 
@@ -310,6 +341,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6c7a8f',
     lineHeight: 20,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(127,41,39,0.25)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(238,125,119,0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: '#EE7D77',
+    flex: 1,
   },
   formCard: {
     backgroundColor: 'rgba(30, 41, 59, 0.4)',

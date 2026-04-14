@@ -25,8 +25,8 @@ const register = async ({ name, email, password, phone, role, societyId, flatId 
   }
 
   // Only RESIDENT and SECURITY can self-register; ADMIN must be created by another admin
-  if (!['RESIDENT', 'SECURITY'].includes(role)) {
-    throw new Error('Invalid role for self-registration');
+  if (!['RESIDENT', 'SECURITY', 'SERVICE'].includes(role)) {
+    throw new Error('Invalid role for registration');
   }
 
   const hashed = await bcrypt.hash(password, 10);

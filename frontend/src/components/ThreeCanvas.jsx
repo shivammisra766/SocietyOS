@@ -2,16 +2,13 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 export default function ThreeCanvas() {
-  const initialized = useRef(false);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const container = document.getElementById('three-canvas-container');
-    if (!container) return;
-
-    // Scene
+    // Scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       55,
@@ -19,124 +16,91 @@ export default function ThreeCanvas() {
       0.1,
       1000
     );
-    camera.position.z = 5;
+    camera.position.z = 6;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    } catch (e) {
+      console.warn('WebGL initialization failed:', e);
+      return;
+    }
+
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    // Lights - Neutral White
-    const ambientLight = new THREE.AmbientLight(0x222222, 0.8);
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambientLight);
 
-    const pointLight1 = new THREE.PointLight(0xffffff, 0.8);
-    pointLight1.position.set(5, 5, 2);
+    const pointLight1 = new THREE.PointLight(0xffffff, 1);
+    pointLight1.position.set(5, 5, 5);
     scene.add(pointLight1);
 
-    const pointLight2 = new THREE.PointLight(0x404040, 0.5);
-    pointLight2.position.set(-5, -5, 2);
-    scene.add(pointLight2);
+    // Data Sphere Group
+    const sphereGroup = new THREE.Group();
 
-    // Smartphone Mockup (Group)
-    const phoneGroup = new THREE.Group();
+    // Geometry
+    const sphereRadius = 2.5;
+    const sphereGeometry = new THREE.IcosahedronGeometry(sphereRadius, 3);
 
-    // Phone Body - Grayscale Glass
-    const phoneGeom = new THREE.BoxGeometry(2, 4, 0.15);
-    const phoneMat = new THREE.MeshPhysicalMaterial({
+    // Dots
+    const pointsMaterial = new THREE.PointsMaterial({
       color: 0xffffff,
-      metalness: 0.1,
-      roughness: 0.1,
+      size: 0.05,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const points = new THREE.Points(sphereGeometry, pointsMaterial);
+    sphereGroup.add(points);
+
+    // Outer Wireframe
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
       transparent: true,
       opacity: 0.15,
-      transmission: 0.9,
-      thickness: 0.5,
     });
-    const phoneBody = new THREE.Mesh(phoneGeom, phoneMat);
-    phoneGroup.add(phoneBody);
+    const wireframe = new THREE.LineSegments(
+      new THREE.WireframeGeometry(sphereGeometry),
+      lineMaterial
+    );
+    sphereGroup.add(wireframe);
 
-    // Inner Screen Canvas - Monotone UI
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d');
-
-    function drawScreen() {
-      ctx.fillStyle = '#0a0a0a';
-      ctx.fillRect(0, 0, 512, 1024);
-
-      // Dashboard UI
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.beginPath();
-      ctx.roundRect(40, 60, 432, 160, 20);
-      ctx.fill();
-
-      // Status Pills - Grayscale
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(60, 100, 100, 30, 15);
-      ctx.fill();
-      ctx.fillStyle = '#404040';
-      ctx.beginPath();
-      ctx.roundRect(180, 100, 140, 30, 15);
-      ctx.fill();
-
-      // QR Square
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.roundRect(131, 350, 250, 250, 12);
-      ctx.fill();
-      ctx.fillStyle = '#0a0a0a';
-      ctx.fillRect(160, 380, 190, 190);
-      // Simple QR lines - White
-      ctx.fillStyle = 'white';
-      for (let i = 0; i < 6; i++) {
-        ctx.fillRect(180 + i * 25, 400, 15, 150);
-        ctx.fillRect(180, 400 + i * 25, 150, 15);
-      }
-
-      // Text placeholders
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.fillRect(60, 650, 392, 20);
-      ctx.fillRect(60, 700, 280, 20);
-    }
-    drawScreen();
-
-    const screenTexture = new THREE.CanvasTexture(canvas);
-    const screenGeom = new THREE.PlaneGeometry(1.85, 3.85);
-    const screenMat = new THREE.MeshBasicMaterial({
-      map: screenTexture,
+    // Inner Wireframe
+    const innerGeometry = new THREE.IcosahedronGeometry(sphereRadius * 0.7, 2);
+    const innerLineMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
       transparent: true,
+      opacity: 0.1,
     });
-    const screen = new THREE.Mesh(screenGeom, screenMat);
-    screen.position.z = 0.08;
-    phoneGroup.add(screen);
+    const innerWireframe = new THREE.LineSegments(
+      new THREE.WireframeGeometry(innerGeometry),
+      innerLineMaterial
+    );
+    sphereGroup.add(innerWireframe);
 
-    scene.add(phoneGroup);
+    scene.add(sphereGroup);
 
-    // Particles - Pure White
+    // Particles
     const particlesGeom = new THREE.BufferGeometry();
-    const particlesCount = 120;
+    const particlesCount = 200;
     const posArray = new Float32Array(particlesCount * 3);
 
     for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 15;
+      posArray[i] = (Math.random() - 0.5) * 20;
     }
 
-    particlesGeom.setAttribute(
-      'position',
-      new THREE.BufferAttribute(posArray, 3)
-    );
+    particlesGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
     const particlesMat = new THREE.PointsMaterial({
-      size: 0.04,
+      size: 0.03,
       color: 0xffffff,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.2,
     });
     const particlesMesh = new THREE.Points(particlesGeom, particlesMat);
     scene.add(particlesMesh);
 
-    // Mouse Parallax
+    // Parallax Interaction
     let mouseX = 0;
     let mouseY = 0;
 
@@ -146,34 +110,7 @@ export default function ThreeCanvas() {
     };
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Animation Loop
-    let animationId;
-    function animate() {
-      animationId = requestAnimationFrame(animate);
-
-      // Auto-rotate phone
-      phoneGroup.rotation.y += 0.003;
-
-      // Camera Parallax
-      const targetX = mouseX * 0.3;
-      const targetY = -mouseY * 0.3;
-      camera.position.x += (targetX - camera.position.x) * 0.05;
-      camera.position.y += (targetY - camera.position.y) * 0.05;
-      camera.lookAt(scene.position);
-
-      // Particles motion
-      const positions = particlesGeom.attributes.position.array;
-      for (let i = 0; i < particlesCount; i++) {
-        const i3 = i * 3;
-        positions[i3 + 1] += Math.sin(Date.now() * 0.001 + i) * 0.002;
-      }
-      particlesGeom.attributes.position.needsUpdate = true;
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Responsive Resizing
+    // Responsive
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -181,17 +118,66 @@ export default function ThreeCanvas() {
     };
     window.addEventListener('resize', handleResize);
 
+    // Animation loop
+    let animationId;
+    let disposed = false;
+
+    function animate() {
+      if (disposed) return;
+      animationId = requestAnimationFrame(animate);
+
+      sphereGroup.rotation.y += 0.002;
+      sphereGroup.rotation.x += 0.001;
+
+      const targetX = mouseX * 0.4;
+      const targetY = -mouseY * 0.4;
+      camera.position.x += (targetX - camera.position.x) * 0.05;
+      camera.position.y += (targetY - camera.position.y) * 0.05;
+      camera.lookAt(scene.position);
+
+      const positions = particlesGeom.attributes.position.array;
+      for (let i = 0; i < particlesCount; i++) {
+        const i3 = i * 3;
+        positions[i3 + 1] += Math.sin(Date.now() * 0.0005 + i) * 0.002;
+      }
+      particlesGeom.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
     // Cleanup
     return () => {
+      disposed = true;
       cancelAnimationFrame(animationId);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
+
+      sphereGeometry.dispose();
+      pointsMaterial.dispose();
+      lineMaterial.dispose();
+      innerGeometry.dispose();
+      innerLineMaterial.dispose();
+      particlesGeom.dispose();
+      particlesMat.dispose();
+      
       renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
     };
   }, []);
 
-  return null; // Renders into #three-canvas-container via DOM
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100vh',
+        zIndex: -1,
+        pointerEvents: 'none',
+        display: 'block'
+      }}
+    />
+  );
 }

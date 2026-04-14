@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SocietyOS — Residential Management Reimagined</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ffffff",
+                        "secondary": "#c7c6c6",
+                        "tertiary": "#e3e2e2",
+                        "background": "#0a0a0a",
+                        "surface": "#121212",
+                        "on-background": "#e3e2e2",
+                        "on-surface": "#e3e2e2",
+                        "outline": "#404040",
+                        "brand-gray": "#ffffff",
+                        "brand-muted": "#737373"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.25rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { margin: 0; overflow-x: hidden; background-color: #0a0a0a; font-family: 'Inter', sans-serif; }
+        #three-canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: -1; pointer-events: none; }
+        .glass-card { backdrop-filter: blur(8px); }
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .hero-gradient-text { background: linear-gradient(135deg, #ffffff 0%, #737373 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cta-solid { background: #ffffff; color: #000000; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        html { scroll-behavior: smooth; }
+        .grayscale-border { border-color: rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-white/20">
+<div id="three-canvas-container"></div>
+<!-- Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-[16px] saturate-[180%] border-b border-white/5 transition-all duration-300">
+<div class="max-w-[1440px] mx-auto flex justify-between items-center px-6 md:px-12 h-16">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 flex items-center justify-center">
+<svg fill="none" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<lineargradient id="logo-grad" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#ffffff"></stop>
+<stop offset="100%" stop-color="#404040"></stop>
+</lineargradient>
+</defs>
+<path d="M12 2L20.6603 7V17L12 22L3.33975 17V7L12 2Z" fill="url(#logo-grad)"></path>
+<path d="M12 6L17.1962 9V15L12 18L6.80385 15V9L12 6Z" fill="#0A0A0A"></path>
+</svg>
+</div>
+<span class="text-lg font-semibold tracking-tight text-white">SocietyOS</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[14px] text-white/60 hover:text-white transition-colors" href="#features">Experience</a>
+<a class="text-[14px] text-white/60 hover:text-white transition-colors" href="#how-it-works">Features</a>
+<a class="text-[14px] text-white/60 hover:text-white transition-colors" href="#about">Process</a>
+<a class="text-[14px] text-white/60 hover:text-white transition-colors" href="#contact">Contact</a>
+<button class="bg-white text-black px-[18px] py-[8px] text-[13px] font-semibold rounded-lg hover:bg-neutral-200 transition-all active:scale-95 shadow-[0_4px_12px_rgba(255,255,255,0.1)]">Login</button>
+</div>
+<button class="md:hidden text-white/60">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center justify-center pt-16 px-6 overflow-hidden">
+<div class="text-center max-w-4xl mx-auto z-10 flex flex-col items-center">
+<div class="reveal inline-flex items-center gap-2 bg-white/5 border border-white/20 rounded-full px-4 py-1.5 mb-8">
+<span class="text-[13px] font-medium text-white tracking-wide">Residential Management · Reimagined</span>
+</div>
+<h1 class="reveal text-[clamp(40px,6vw,72px)] font-bold text-white leading-[1.1] tracking-[-0.02em] mb-6">
+                Your Society. Secured. Simplified.
+            </h1>
+<p class="reveal max-w-[520px] text-[17px] text-white/60 leading-relaxed mb-10 mx-auto">
+                SocietyOS replaces paper registers and phone calls with instant digital visitor pre-clearance — giving residents control and guards a verification tool that works in under 30 seconds.
+            </p>
+<div class="reveal flex flex-col sm:flex-row items-center gap-4 mb-12">
+<button class="bg-white text-black px-8 py-3.5 font-semibold rounded-xl hover:bg-neutral-200 transition-all shadow-[0_4px_24px_rgba(255,255,255,0.1)]">
+                    Request Early Access
+                </button>
+<button class="bg-white/5 border border-white/15 text-white px-8 py-3.5 font-medium rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm">
+                    See How It Works
+                </button>
+</div>
+<p class="reveal text-[13px] text-white/35 font-medium">
+                Trusted by 12 societies · 3,400+ residents · Zero unauthorized entries
+            </p>
+</div>
+</section>
+<!-- About / Company Section -->
+<section class="relative py-24 md:py-32 bg-[#050505] z-10 px-6" id="about">
+<div class="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+<div class="reveal space-y-8">
+<div class="inline-flex items-center gap-2 bg-white/5 border border-white/20 rounded-full px-3 py-1">
+<span class="text-[11px] font-bold text-white uppercase tracking-widest">About SocietyOS</span>
+</div>
+<h2 class="text-[clamp(28px,4vw,42px)] font-bold text-white leading-tight tracking-[-0.02em]">
+                    Built for the way modern societies actually work.
+                </h2>
+<div class="space-y-6 text-white/60 text-[16px] leading-relaxed">
+<p>We started SocietyOS after watching a security guard spend three minutes on the phone just to let in a food delivery — while six more visitors waited at the gate.</p>
+<p>Our platform gives residents a digital key: pre-approve anyone, generate a QR code in seconds, and let your household staff through automatically every morning without a single call.</p>
+<p>For society admins, it's a full command centre — entry logs, complaints, notices, and resident management from one clean dashboard.</p>
+</div>
+<div class="grid grid-cols-3 gap-4 pt-4">
+<div>
+<div class="text-3xl font-bold text-white">30s</div>
+<div class="text-[11px] uppercase tracking-wider text-white/30 mt-1">Average Entry</div>
+</div>
+<div>
+<div class="text-3xl font-bold text-white">80%</div>
+<div class="text-[11px] uppercase tracking-wider text-white/30 mt-1">No Guard Calls</div>
+</div>
+<div>
+<div class="text-3xl font-bold text-white">0</div>
+<div class="text-[11px] uppercase tracking-wider text-white/30 mt-1">Unauthorized</div>
+</div>
+</div>
+</div>
+<div class="reveal grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-white/[0.04] border border-white/[0.08] p-7 rounded-[20px] hover:bg-white/[0.07] hover:border-white/[0.14] hover:-translate-y-1 transition-all group">
+<div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center mb-6 border border-white/20">
+<span class="material-symbols-outlined text-white">shield</span>
+</div>
+<h3 class="text-white font-bold text-lg mb-3">Visitor Pre-Clearance</h3>
+<p class="text-white/40 text-sm leading-relaxed">Generate QR passes for guests, deliveries, and cabs. Share via WhatsApp. Entry in under 30 seconds.</p>
+</div>
+<div class="bg-white/[0.04] border border-white/[0.08] p-7 rounded-[20px] hover:bg-white/[0.07] hover:border-white/[0.14] hover:-translate-y-1 transition-all">
+<div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center mb-6 border border-white/20">
+<span class="material-symbols-outlined text-white">sync</span>
+</div>
+<h3 class="text-white font-bold text-lg mb-3">Recurring Staff Passes</h3>
+<p class="text-white/40 text-sm leading-relaxed">Set fixed schedules for maids, cooks, and drivers. They walk in automatically during approved hours.</p>
+</div>
+<div class="bg-white/[0.04] border border-white/[0.08] p-7 rounded-[20px] hover:bg-white/[0.07] hover:border-white/[0.14] hover:-translate-y-1 transition-all">
+<div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center mb-6 border border-white/20">
+<span class="material-symbols-outlined text-white">notifications_active</span>
+</div>
+<h3 class="text-white font-bold text-lg mb-3">Live Entry Approval</h3>
+<p class="text-white/40 text-sm leading-relaxed">Unexpected visitor? Get a real-time notification and approve or deny entry from your phone in one tap.</p>
+</div>
+<div class="bg-white/[0.04] border border-white/[0.08] p-7 rounded-[20px] hover:bg-white/[0.07] hover:border-white/[0.14] hover:-translate-y-1 transition-all">
+<div class="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center mb-6 border border-white/20">
+<span class="material-symbols-outlined text-white">bar_chart</span>
+</div>
+<h3 class="text-white font-bold text-lg mb-3">Full Admin Control</h3>
+<p class="text-white/40 text-sm leading-relaxed">Society admins get audit logs, complaint management, and flat registries in one web dashboard.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- How It Works Section -->
+<section class="py-24 md:py-32 px-6 relative z-10 bg-gradient-to-b from-[#050505] to-[#121212]" id="how-it-works">
+<div class="max-w-[900px] mx-auto text-center mb-20">
+<div class="reveal inline-flex items-center gap-2 bg-white/5 border border-white/20 rounded-full px-3 py-1 mb-6">
+<span class="text-[11px] font-bold text-white uppercase tracking-widest">The Process</span>
+</div>
+<h2 class="reveal text-4xl font-bold text-white tracking-tight">How It Works</h2>
+</div>
+<div class="max-w-[1000px] mx-auto flex flex-col md:flex-row items-start justify-between gap-12 relative">
+<div class="reveal flex-1 text-center md:text-left relative">
+<div class="text-[48px] font-extrabold hero-gradient-text opacity-30 mb-2">01</div>
+<h3 class="text-lg font-bold text-white mb-3">Resident creates a pass</h3>
+<p class="text-sm text-white/40 leading-relaxed">Open the app, fill in your visitor's name and timing, and share the QR code via WhatsApp.</p>
+</div>
+<div class="hidden md:block absolute top-[40px] left-[30%] w-[10%] border-t border-dashed border-white/10"></div>
+<div class="reveal flex-1 text-center md:text-left relative">
+<div class="text-[48px] font-extrabold hero-gradient-text opacity-30 mb-2">02</div>
+<h3 class="text-lg font-bold text-white mb-3">Visitor arrives at gate</h3>
+<p class="text-sm text-white/40 leading-relaxed">The guard scans the QR. The system validates it instantly — no calls, no waiting.</p>
+</div>
+<div class="hidden md:block absolute top-[40px] left-[63%] w-[10%] border-t border-dashed border-white/10"></div>
+<div class="reveal flex-1 text-center md:text-left">
+<div class="text-[48px] font-extrabold hero-gradient-text opacity-30 mb-2">03</div>
+<h3 class="text-lg font-bold text-white mb-3">Entry logged automatically</h3>
+<p class="text-sm text-white/40 leading-relaxed">Every entry is timestamped and stored. Admins see everything. Residents see history.</p>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-black py-16 px-6 border-t border-white/5 relative z-10" id="contact">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10 pb-12">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 flex items-center justify-center">
+<svg fill="none" height="20" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 2L20.6603 7V17L12 22L3.33975 17V7L12 2Z" fill="url(#logo-grad)"></path>
+</svg>
+</div>
+<span class="text-base font-bold tracking-tight text-white/90">SocietyOS</span>
+</div>
+<div class="flex flex-wrap justify-center gap-8 text-[13px] text-white/40 font-medium">
+<a class="hover:text-white transition-colors uppercase tracking-widest" href="#features">Experience</a>
+<a class="hover:text-white transition-colors uppercase tracking-widest" href="#how-it-works">Features</a>
+<a class="hover:text-white transition-colors uppercase tracking-widest" href="#">Process</a>
+<a class="hover:text-white transition-colors uppercase tracking-widest" href="#contact">Contact</a>
+</div>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:border-white hover:text-white transition-all text-white/40" href="#">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"></path></svg>
+</a>
+<a class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:border-white hover:text-white transition-all text-white/40" href="#">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path></svg>
+</a>
+</div>
+</div>
+<div class="max-w-7xl mx-auto text-center pt-8 border-t border-white/5">
+<p class="text-[13px] text-white/25 leading-relaxed">
+                © 2024 SocietyOS. Elevating Residential Standards. · Built for residential communities.
+            </p>
+</div>
+</footer>
+<script>
+        // Three.js Scene Setup - Monotone Theme
+        const container = document.getElementById('three-canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 6;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Lights - Neutral White
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const pointLight1 = new THREE.PointLight(0xffffff, 1);
+        pointLight1.position.set(5, 5, 5);
+        scene.add(pointLight1);
+
+        // Data Sphere Group
+        const sphereGroup = new THREE.Group();
+        
+        // Geometry for the data points
+        const sphereRadius = 2.5;
+        const sphereGeometry = new THREE.IcosahedronGeometry(sphereRadius, 3);
+        
+        // Dots (Points)
+        const pointsMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.05,
+            transparent: true,
+            opacity: 0.8
+        });
+        const points = new THREE.Points(sphereGeometry, pointsMaterial);
+        sphereGroup.add(points);
+
+        // Lines (Wireframe-ish)
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.15
+        });
+        const wireframe = new THREE.LineSegments(
+            new THREE.WireframeGeometry(sphereGeometry),
+            lineMaterial
+        );
+        sphereGroup.add(wireframe);
+        
+        // Add some "inner" complexity
+        const innerGeometry = new THREE.IcosahedronGeometry(sphereRadius * 0.7, 2);
+        const innerWireframe = new THREE.LineSegments(
+            new THREE.WireframeGeometry(innerGeometry),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 })
+        );
+        sphereGroup.add(innerWireframe);
+
+        scene.add(sphereGroup);
+
+        // Particles - Pure White
+        const particlesGeom = new THREE.BufferGeometry();
+        const particlesCount = 200;
+        const posArray = new Float32Array(particlesCount * 3);
+        
+        for(let i=0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 20;
+        }
+        
+        particlesGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({ size: 0.03, color: 0xffffff, transparent: true, opacity: 0.2 });
+        const particlesMesh = new THREE.Points(particlesGeom, particlesMat);
+        scene.add(particlesMesh);
+
+        // Mouse Parallax
+        let mouseX = 0, mouseY = 0;
+        let targetX = 0, targetY = 0;
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5);
+            mouseY = (e.clientY / window.innerHeight - 0.5);
+        });
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto-rotate sphere
+            sphereGroup.rotation.y += 0.002;
+            sphereGroup.rotation.x += 0.001;
+            
+            // Camera Parallax
+            targetX = mouseX * 0.4;
+            targetY = -mouseY * 0.4;
+            camera.position.x += (targetX - camera.position.x) * 0.05;
+            camera.position.y += (targetY - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            // Particles motion
+            const positions = particlesGeom.attributes.position.array;
+            for(let i = 0; i < particlesCount; i++) {
+                const i3 = i * 3;
+                positions[i3+1] += Math.sin(Date.now() * 0.0005 + i) * 0.002;
+            }
+            particlesGeom.attributes.position.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsive Resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Reveal On Scroll Logic
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body></html>

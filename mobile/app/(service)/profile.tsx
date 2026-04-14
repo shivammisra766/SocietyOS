@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../hooks/useAuth';
 
 interface MenuItem {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -35,11 +36,12 @@ const appItems: MenuItem[] = [
 export default function ServiceProfile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => router.replace('/(auth)') },
+      { text: 'Logout', style: 'destructive', onPress: () => logout() },
     ]);
   };
 
@@ -77,10 +79,10 @@ export default function ServiceProfile() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>SD</Text>
+            <Text style={styles.avatarText}>{user?.name?.split(' ').map(n => n[0]).join('') || 'SS'}</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Sunita Devi</Text>
+            <Text style={styles.profileName}>{user?.name || 'Staff'}</Text>
             <View style={styles.badgeRow}>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleBadgeText}>Housekeeping</Text>

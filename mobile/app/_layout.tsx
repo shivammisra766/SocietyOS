@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
+import { AuthProvider } from '../hooks/useAuth';
 
 import {
   Inter_300Light,
@@ -35,7 +36,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(resident)" options={{ headerShown: false }} />
@@ -43,6 +44,6 @@ export default function RootLayout() {
         <Stack.Screen name="(service)" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" backgroundColor="transparent" translucent />
-    </>
+    </AuthProvider>
   );
 }

@@ -48,8 +48,8 @@ const start = async () => {
     // Start cron jobs
     startPassExpiryCron();
 
-    server.listen(PORT, () => {
-      console.log(`SocietyOS API running on port ${PORT}`);
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`SocietyOS API running on http://0.0.0.0:${PORT}`);
     });
   } catch (err) {
     console.error('Failed to start:', err);

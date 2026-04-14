@@ -22,8 +22,11 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <>
-      <ThreeCanvas />
+    <div className="relative min-h-screen text-white font-sans selection:bg-white/20 overflow-x-hidden">
+      {/* 3D Canvas Background */}
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+        <ThreeCanvas />
+      </div>
 
       {/* Navigation Shell */}
       <nav className="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-[16px] saturate-[180%] border-b border-white/5 transition-all duration-300">
@@ -66,7 +69,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <a
               className="text-[14px] text-white/60 hover:text-white transition-colors"
-              href="#about"
+              href="#features"
             >
               Experience
             </a>
@@ -78,7 +81,7 @@ export default function LandingPage() {
             </a>
             <a
               className="text-[14px] text-white/60 hover:text-white transition-colors"
-              href="#about"
+              href="#how-it-works"
             >
               Process
             </a>
@@ -90,9 +93,9 @@ export default function LandingPage() {
             </a>
             <Link
               to="/login"
-              className="bg-white text-black px-[18px] py-[8px] text-[13px] font-semibold rounded-lg hover:bg-neutral-200 transition-all active:scale-95 shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
+              className="inline-flex items-center justify-center bg-white text-black px-[18px] py-[8px] text-[13px] font-semibold rounded-lg hover:bg-neutral-200 transition-all active:scale-95 shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
             >
-              Request Access
+              Login
             </Link>
           </div>
           <button className="md:hidden text-white/60">
@@ -102,7 +105,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-16 px-6 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center pt-16 px-6 overflow-hidden z-10">
         <div className="text-center max-w-4xl mx-auto z-10 flex flex-col items-center">
           <div className="reveal inline-flex items-center gap-2 bg-white/5 border border-white/20 rounded-full px-4 py-1.5 mb-8">
             <span className="text-[13px] font-medium text-white tracking-wide">
@@ -123,14 +126,13 @@ export default function LandingPage() {
             </button>
             <a
               href="#how-it-works"
-              className="bg-white/5 border border-white/15 text-white px-8 py-3.5 font-medium rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm"
+              className="inline-flex items-center justify-center bg-white/5 border border-white/15 text-white px-8 py-3.5 font-medium rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm"
             >
               See How It Works
             </a>
           </div>
           <p className="reveal text-[13px] text-white/35 font-medium">
-            Trusted by 12 societies · 3,400+ residents · Zero unauthorized
-            entries
+            Zero unauthorized entries.
           </p>
         </div>
       </section>
@@ -138,7 +140,7 @@ export default function LandingPage() {
       {/* About / Company Section */}
       <section
         className="relative py-24 md:py-32 bg-[#050505] z-10 px-6"
-        id="about"
+        id="features"
       >
         <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
           <div className="reveal space-y-8">
@@ -326,7 +328,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-8 text-[13px] text-white/40 font-medium">
             <a
               className="hover:text-white transition-colors uppercase tracking-widest"
-              href="#about"
+              href="#features"
             >
               Experience
             </a>
@@ -338,7 +340,7 @@ export default function LandingPage() {
             </a>
             <a
               className="hover:text-white transition-colors uppercase tracking-widest"
-              href="#about"
+              href="#how-it-works"
             >
               Process
             </a>
@@ -372,11 +374,11 @@ export default function LandingPage() {
         </div>
         <div className="max-w-7xl mx-auto text-center pt-8 border-t border-white/5">
           <p className="text-[13px] text-white/25 leading-relaxed">
-            © 2024 SocietyOS. Elevating Residential Standards. · Built for
+            © 2026 SocietyOS. Elevating Residential Standards. · Built for
             residential communities.
           </p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

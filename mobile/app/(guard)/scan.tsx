@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   Dimensions,
   Animated,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
 const { width, height } = Dimensions.get('window');
 const FRAME_SIZE = 288;
@@ -17,6 +19,9 @@ const FRAME_SIZE = 288;
 export default function GuardScan() {
   const insets = useSafeAreaInsets();
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -35,11 +40,79 @@ export default function GuardScan() {
     ).start();
   }, [scanLineAnim]);
 
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+    if (scanned) return;
+    setScanned(true);
+    Alert.alert(
+      'QR Code Scanned',
+      `Type: ${type}\nData: ${data}`,
+      [
+        {
+          text: 'Scan Again',
+          onPress: () => setScanned(false),
+        },
+        {
+          text: 'OK',
+          style: 'default',
+        },
+      ]
+    );
+  };
+
+  // Permission not determined yet
+  if (!permission) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#090e18', '#060a12']} style={StyleSheet.absoluteFill} />
+        <View style={styles.permissionContainer}>
+          <MaterialIcons name="hourglass-top" size={48} color="#53FEC2" />
+          <Text style={styles.permissionTitle}>Loading Camera...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Permission denied
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={['#090e18', '#060a12']} style={StyleSheet.absoluteFill} />
+        <View style={styles.permissionContainer}>
+          <MaterialIcons name="no-photography" size={64} color="#EE7D77" />
+          <Text style={styles.permissionTitle}>Camera Access Required</Text>
+          <Text style={styles.permissionSub}>
+            ShieldGuard needs camera access to scan visitor QR codes and verify credentials.
+          </Text>
+          <TouchableOpacity style={styles.grantBtn} onPress={requestPermission}>
+            <LinearGradient
+              colors={['#1e3a5f', '#152641']}
+              style={styles.grantBtnInner}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <MaterialIcons name="camera-alt" size={18} color="#dbe5ff" />
+              <Text style={styles.grantBtnText}>GRANT CAMERA ACCESS</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#090e18', '#060a12']} style={StyleSheet.absoluteFill} />
+      {/* Live Camera Feed */}
+      <CameraView
+        style={StyleSheet.absoluteFill}
+        facing="back"
+        enableTorch={torchOn}
+        barcodeScannerSettings={{
+          barcodeTypes: ['qr', 'ean13', 'code128'],
+        }}
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+      />
 
-      {/* Dark overlay with cutout effect simulated */}
+      {/* Dark overlay */}
       <View style={styles.overlayContainer}>
         {/* Top section */}
         <View style={[styles.overlaySection, { paddingTop: insets.top + 16 }]}>
@@ -50,7 +123,9 @@ export default function GuardScan() {
             <Text style={styles.headerTitle}>SHIELDGUARD</Text>
           </View>
           <Text style={styles.guidance}>Align QR Code within the frame</Text>
-          <Text style={styles.subGuidance}>Scanning for authorized credentials...</Text>
+          <Text style={styles.subGuidance}>
+            {scanned ? 'Code detected! Processing...' : 'Scanning for authorized credentials...'}
+          </Text>
         </View>
 
         {/* Scanner Frame */}
@@ -70,7 +145,7 @@ export default function GuardScan() {
               ]}
             >
               <LinearGradient
-                colors={['transparent', '#53FEC2', 'transparent']}
+                colors={['transparent', scanned ? '#FACC15' : '#53FEC2', 'transparent']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.scanLineGradient}
@@ -81,14 +156,33 @@ export default function GuardScan() {
 
         {/* Bottom controls */}
         <View style={[styles.controls, { paddingBottom: insets.bottom + 80 }]}>
-          <TouchableOpacity style={styles.controlBtn}>
-            <MaterialIcons name="flash-on" size={24} color="#9BABCE" />
-            <Text style={styles.controlLabel}>Torch</Text>
+          <TouchableOpacity
+            style={styles.controlBtn}
+            onPress={() => setTorchOn((v) => !v)}
+          >
+            <MaterialIcons
+              name={torchOn ? 'flash-off' : 'flash-on'}
+              size={24}
+              color={torchOn ? '#FACC15' : '#9BABCE'}
+            />
+            <Text style={[styles.controlLabel, torchOn && { color: '#FACC15' }]}>
+              {torchOn ? 'Torch On' : 'Torch'}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.scanBtnOuter}>
-            <TouchableOpacity style={styles.scanBtnInner}>
-              <MaterialIcons name="qr-code-scanner" size={28} color="#090E18" />
+            <TouchableOpacity
+              style={[
+                styles.scanBtnInner,
+                scanned && { backgroundColor: '#FACC15' },
+              ]}
+              onPress={() => setScanned(false)}
+            >
+              <MaterialIcons
+                name="qr-code-scanner"
+                size={28}
+                color="#090E18"
+              />
             </TouchableOpacity>
           </View>
 
@@ -105,6 +199,50 @@ export default function GuardScan() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#060a12' },
   overlayContainer: { flex: 1, justifyContent: 'space-between' },
+
+  /* Permission screens */
+  permissionContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  permissionTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 22,
+    color: '#DEE1F7',
+    textAlign: 'center',
+  },
+  permissionSub: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#9BABCE',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  grantBtn: {
+    marginTop: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  grantBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 28,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(219, 229, 255, 0.15)',
+  },
+  grantBtnText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 13,
+    letterSpacing: 2,
+    color: '#dbe5ff',
+  },
 
   /* Header */
   overlaySection: { alignItems: 'center', gap: 8, paddingHorizontal: 20 },

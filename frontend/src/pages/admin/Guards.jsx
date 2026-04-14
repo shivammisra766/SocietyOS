@@ -8,7 +8,6 @@ export default function AdminGuards() {
   const [guardName, setGuardName] = useState('');
   const [guardEmail, setGuardEmail] = useState('');
   const [guardPhone, setGuardPhone] = useState('');
-  const [guardPassword, setGuardPassword] = useState('');
   const [guards, setGuards] = useState([]);
   const [editGuardId, setEditGuardId] = useState(null);
 
@@ -28,36 +27,16 @@ export default function AdminGuards() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!guardName.trim() || !guardEmail.trim()) return;
-    if (!editGuardId && !guardPassword.trim()) return; // Password required only on create
-    
-    // Safety check for society ID
-    const societyId = user?.societyId;
-    if (!societyId) {
-      alert("Error: Admin session missing Society ID. Please Logout and Login again.");
-      return;
-    }
 
     try {
-      if (editGuardId) {
-        await api.patch(`/users/${editGuardId}`, {
-          name: guardName,
-          email: guardEmail,
-          phone: guardPhone || undefined
-        });
-      } else {
-        await api.post('/auth/register', {
-          name: guardName,
-          email: guardEmail,
-          phone: guardPhone || undefined,
-          password: guardPassword,
-          role: 'SECURITY',
-          societyId: societyId
-        });
-      }
+      await api.patch(`/users/${editGuardId}`, {
+        name: guardName,
+        email: guardEmail,
+        phone: guardPhone || undefined
+      });
       setGuardName('');
       setGuardEmail('');
       setGuardPhone('');
-      setGuardPassword('');
       setEditGuardId(null);
       setModalOpen(false);
       fetchGuards();
@@ -81,6 +60,16 @@ export default function AdminGuards() {
     }
   };
 
+  const handleApprove = async (id) => {
+    try {
+      await api.patch(`/users/${id}/approve`);
+      fetchGuards();
+    } catch (err) {
+      console.error("Failed to approve guard", err);
+      alert(err.response?.data?.message || 'Failed to approve guard.');
+    }
+  };
+
   return (
     <div className="p-8 pb-16">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -88,20 +77,6 @@ export default function AdminGuards() {
           <h1 className="text-3xl font-bold tracking-tight text-on-surface text-white">Security Guard Directory</h1>
           <p className="text-on-surface-variant text-gray-400 mt-1">Manage personnel, shift assignments, and operational status.</p>
         </div>
-        <button 
-          onClick={() => {
-            setGuardName('');
-            setGuardEmail('');
-            setGuardPhone('');
-            setGuardPassword('');
-            setEditGuardId(null);
-            setModalOpen(true);
-          }}
-          className="bg-white text-black px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 hover:bg-neutral-200 transition-colors active:scale-95 border-none cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-xl">person_add</span>
-          Assign New Guard
-        </button>
       </header>
 
       {/* Stats Overview */}
@@ -182,20 +157,29 @@ export default function AdminGuards() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {guard.status !== 'APPROVED' && (
+                        <button 
+                          onClick={() => handleApprove(guard.id)} 
+                          className="p-1.5 rounded hover:bg-emerald-500/10 text-gray-400 hover:text-emerald-500 transition-colors bg-transparent border-none cursor-pointer flex items-center"
+                          title="Approve Guard"
+                        >
+                          <span className="material-symbols-outlined text-sm">check_circle</span>
+                        </button>
+                      )}
                       <button 
                         onClick={() => {
                           setEditGuardId(guard.id);
                           setGuardName(guard.name || '');
                           setGuardEmail(guard.email || '');
                           setGuardPhone(guard.phone || '');
-                          setGuardPassword('');
                           setModalOpen(true);
                         }} 
                         className="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer flex items-center"
+                        title="Edit Guard"
                       >
                         <span className="material-symbols-outlined text-sm">edit</span>
                       </button>
-                      <button onClick={() => handleDelete(guard.id)} className="p-1.5 rounded hover:bg-error/10 text-gray-500 hover:text-rose-500 transition-colors bg-transparent border-none cursor-pointer flex items-center">
+                      <button onClick={() => handleDelete(guard.id)} className="p-1.5 rounded hover:bg-error/10 text-gray-500 hover:text-rose-500 transition-colors bg-transparent border-none cursor-pointer flex items-center" title="Delete Guard">
                         <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
                     </div>
@@ -212,11 +196,12 @@ export default function AdminGuards() {
         </div>
       </div>
 
-      {modalOpen && (
+      {/* Edit-only modal (no create) */}
+      {modalOpen && editGuardId && (
         <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="glass-morphism w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl bg-surface-container-low border border-white/10">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white tracking-tight">{editGuardId ? 'Edit Guard Details' : 'Assign New Guard'}</h3>
+              <h3 className="text-xl font-bold text-white tracking-tight">Edit Guard Details</h3>
               <button 
                 onClick={() => {
                   setModalOpen(false);
@@ -262,26 +247,13 @@ export default function AdminGuards() {
                     />
                   </div>
                 </div>
-                {!editGuardId && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Initial Password (Min 6 chars)</label>
-                    <input 
-                      value={guardPassword}
-                      onChange={(e) => setGuardPassword(e.target.value)}
-                      required={!editGuardId}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 font-medium" 
-                      placeholder="Min. 6 characters" 
-                      type="password" 
-                    />
-                  </div>
-                )}
                 <div className="pt-4 flex gap-4 mt-6">
                   <button onClick={() => {
                     setModalOpen(false);
                     setEditGuardId(null);
                   }} className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-400 border border-white/10 bg-transparent hover:bg-white/5 transition-all cursor-pointer" type="button">Cancel</button>
-                  <button disabled={!guardName.trim() || !guardEmail.trim() || (!editGuardId && !guardPassword.trim())} className="flex-1 py-3 px-4 rounded-xl font-bold bg-white text-black border-none hover:bg-neutral-200 transition-all cursor-pointer disabled:opacity-50" type="submit">
-                    {editGuardId ? 'Save Changes' : 'Deploy Guard'}
+                  <button disabled={!guardName.trim() || !guardEmail.trim()} className="flex-1 py-3 px-4 rounded-xl font-bold bg-white text-black border-none hover:bg-neutral-200 transition-all cursor-pointer disabled:opacity-50" type="submit">
+                    Save Changes
                   </button>
                 </div>
               </form>

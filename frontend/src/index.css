@@ -52,12 +52,6 @@
   letter-spacing: -0.01em;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   min-height: 100vh;
   overflow-x: hidden;
@@ -75,20 +69,26 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Three.js canvas container */
-#three-canvas-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  z-index: -1;
-  pointer-events: none;
-}
+/* Three.js canvas is now self-contained in ThreeCanvas component */
 
 /* Glass card utility */
 .glass-card {
   backdrop-filter: blur(8px);
+}
+
+/* Stitch design utilities */
+.cta-solid {
+  background: #ffffff;
+  color: #000000;
+}
+
+.grayscale-border {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Reveal on scroll animation */

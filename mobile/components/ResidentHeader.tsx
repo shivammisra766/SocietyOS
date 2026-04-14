@@ -1,12 +1,24 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Platform,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ResidentHeader() {
   const insets = useSafeAreaInsets();
   const pingAnim = useRef(new Animated.Value(1)).current;
+  const { user, logout } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -25,6 +37,19 @@ export default function ResidentHeader() {
     ).start();
   }, [pingAnim]);
 
+  const initials = user?.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('') || 'U';
+
+  const handleLogout = () => {
+    setMenuVisible(false);
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: () => logout() },
+    ]);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <BlurView
@@ -37,23 +62,68 @@ export default function ResidentHeader() {
         {/* Left: Avatar + Name */}
         <View style={styles.leftSection}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AM</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View>
-            <Text style={styles.name}>Aarav Mehta</Text>
-            <Text style={styles.unit}>A-402 • Resident</Text>
+            <Text style={styles.name}>{user?.name || 'Resident'}</Text>
+            <Text style={styles.unit}>
+              {user?.flatId ? `Flat • Resident` : 'Resident'}
+            </Text>
           </View>
         </View>
 
-        {/* Right: Notification Bell */}
+        {/* Right: Notification Bell + Overflow Menu */}
         <View style={styles.rightSection}>
           <View style={styles.bellWrapper}>
             <MaterialIcons name="notifications-none" size={24} color="#9BABCE" />
             <Animated.View style={[styles.pingDot, { opacity: pingAnim }]} />
           </View>
-          <MaterialIcons name="more-vert" size={22} color="#6c7a8f" />
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            <MaterialIcons name="more-vert" size={22} color="#6c7a8f" />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Overflow Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuContainer, { top: insets.top + 56 }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setMenuVisible(false)}
+            >
+              <MaterialIcons name="person-outline" size={18} color="#9BABCE" />
+              <Text style={styles.menuText}>Profile</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setMenuVisible(false)}
+            >
+              <MaterialIcons name="settings" size={18} color="#9BABCE" />
+              <Text style={styles.menuText}>Settings</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+              <MaterialIcons name="logout" size={18} color="#EE7D77" />
+              <Text style={[styles.menuText, { color: '#EE7D77' }]}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -120,5 +190,42 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FACC15',
+  },
+  /* Overflow Menu */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  menuContainer: {
+    position: 'absolute',
+    right: 20,
+    backgroundColor: '#1a2036',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 4,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#DEE1F7',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    marginHorizontal: 16,
   },
 });

@@ -9,90 +9,87 @@ datasource db {
 }
 
 model Society {
-  id        String   @id @default(uuid())
-  name      String
-  address   String
-  zipCode   String?
-  logo      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  flats     Flat[]
-  users     User[]
-  passes    Pass[]
-  entryLogs EntryLog[]
-  notices   Notice[]
+  id         String      @id @default(uuid())
+  name       String
+  address    String
+  zipCode    String?
+  logo       String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   complaints Complaint[]
+  entryLogs  EntryLog[]
+  flats      Flat[]
+  notices    Notice[]
+  passes     Pass[]
+  users      User[]
 }
 
 model Flat {
-  id        String   @id @default(uuid())
-  number    String
-  floor     Int
-  societyId String
-  society   Society  @relation(fields: [societyId], references: [id])
-  users     User[]
+  id         String      @id @default(uuid())
+  number     String
+  floor      Int
+  societyId  String
   complaints Complaint[]
-  passes     Pass[]
   entryLogs  EntryLog[]
+  society    Society     @relation(fields: [societyId], references: [id])
+  passes     Pass[]
+  users      User[]
 
-  @@index([societyId])
   @@unique([number, societyId])
+  @@index([societyId])
 }
 
 model User {
-  id           String     @id @default(uuid())
-  name         String
-  email        String     @unique
-  password     String
-  phone        String?
-  role         Role       @default(RESIDENT)
-  status       UserStatus @default(PENDING)
-  flatId       String?
-  flat         Flat?      @relation(fields: [flatId], references: [id])
-  societyId    String
-  society      Society    @relation(fields: [societyId], references: [id])
-  fcmToken     String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  complaints   Complaint[]
-  passes       Pass[]
-  guardEntries EntryLog[] @relation("GuardEntries")
-  residentEntries EntryLog[] @relation("ResidentEntries")
-  notices      Notice[]
-  notifications Notification[]
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  password        String
+  phone           String?
+  role            Role           @default(RESIDENT)
+  status          UserStatus     @default(PENDING)
+  flatId          String?
+  societyId       String
+  fcmToken        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  complaints      Complaint[]
+  guardEntries    EntryLog[]     @relation("GuardEntries")
+  residentEntries EntryLog[]     @relation("ResidentEntries")
+  notices         Notice[]
+  notifications   Notification[]
+  passes          Pass[]
+  flat            Flat?          @relation(fields: [flatId], references: [id])
+  society         Society        @relation(fields: [societyId], references: [id])
 
   @@index([societyId, status])
   @@index([flatId])
 }
 
 model Pass {
-  id            String      @id @default(uuid())
-  type          PassType
-  visitorName   String
-  visitorPhone  String?
-  visitorType   VisitorType
-  notes         String?
-  visitorPhoto  String?
-
-  qrToken       String?     @unique
-  expiresAt     DateTime?
-  status        PassStatus  @default(ACTIVE)
-
-  allowedDays   Int[]
-  windowStart   String?
-  windowEnd     String?
-  validFrom     DateTime?
-  validUntil    DateTime?
-
-  residentId    String
-  resident      User        @relation(fields: [residentId], references: [id])
-  flatId        String
-  flat          Flat        @relation(fields: [flatId], references: [id])
-  societyId     String
-  society       Society     @relation(fields: [societyId], references: [id])
-  entries       EntryLog[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  type         PassType
+  visitorName  String
+  visitorPhone String?
+  visitorType  VisitorType
+  notes        String?
+  visitorPhoto String?
+  qrToken      String?     @unique
+  expiresAt    DateTime?
+  status       PassStatus  @default(ACTIVE)
+  allowedDays  Int[]
+  windowStart  String?
+  windowEnd    String?
+  validFrom    DateTime?
+  validUntil   DateTime?
+  residentId   String
+  flatId       String
+  societyId    String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  entries      EntryLog[]
+  flat         Flat        @relation(fields: [flatId], references: [id])
+  resident     User        @relation(fields: [residentId], references: [id])
+  society      Society     @relation(fields: [societyId], references: [id])
 
   @@index([residentId])
   @@index([societyId])
@@ -109,20 +106,18 @@ model EntryLog {
   status       EntryStatus
   notes        String?
   visitorIdUrl String?
-
   passId       String?
-  pass         Pass?       @relation(fields: [passId], references: [id])
   guardId      String
-  guard        User        @relation("GuardEntries", fields: [guardId], references: [id])
   residentId   String?
-  resident     User?       @relation("ResidentEntries", fields: [residentId], references: [id])
   flatId       String
-  flat         Flat        @relation(fields: [flatId], references: [id])
   societyId    String
-  society      Society     @relation(fields: [societyId], references: [id])
-
   entryTime    DateTime    @default(now())
   exitTime     DateTime?
+  flat         Flat        @relation(fields: [flatId], references: [id])
+  guard        User        @relation("GuardEntries", fields: [guardId], references: [id])
+  pass         Pass?       @relation(fields: [passId], references: [id])
+  resident     User?       @relation("ResidentEntries", fields: [residentId], references: [id])
+  society      Society     @relation(fields: [societyId], references: [id])
 
   @@index([societyId, entryTime])
   @@index([flatId])
@@ -131,32 +126,32 @@ model EntryLog {
 }
 
 model Notice {
-  id         String          @id @default(uuid())
-  title      String
-  body       String
-  category   NoticeCategory
-  priority   NoticePriority
-  isPinned   Boolean         @default(false)
-  authorId   String
-  author     User            @relation(fields: [authorId], references: [id])
-  societyId  String
-  society    Society         @relation(fields: [societyId], references: [id])
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  id        String         @id @default(uuid())
+  title     String
+  body      String
+  category  NoticeCategory
+  priority  NoticePriority
+  isPinned  Boolean        @default(false)
+  authorId  String
+  societyId String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  author    User           @relation(fields: [authorId], references: [id])
+  society   Society        @relation(fields: [societyId], references: [id])
 
   @@index([societyId])
 }
 
 model Notification {
-  id         String    @id @default(uuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id])
-  type       String
-  title      String
-  body       String
-  isRead     Boolean   @default(false)
-  metadata   Json?
-  createdAt  DateTime  @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId, isRead])
 }
@@ -170,13 +165,13 @@ model Complaint {
   photos      String[]
   closingNote String?
   flatId      String
-  flat        Flat              @relation(fields: [flatId], references: [id])
   userId      String
-  user        User              @relation(fields: [userId], references: [id])
   societyId   String
-  society     Society           @relation(fields: [societyId], references: [id])
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  flat        Flat              @relation(fields: [flatId], references: [id])
+  society     Society           @relation(fields: [societyId], references: [id])
+  user        User              @relation(fields: [userId], references: [id])
 
   @@index([societyId])
   @@index([userId])
