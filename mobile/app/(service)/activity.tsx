@@ -1,37 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-type FilterTab = 'all' | 'week' | 'month';
-
-const activityLogs = [
-  { id: '1', date: 'Today', time: '08:15 AM', type: 'IN' as const, gate: 'Gate A — Pedestrian', status: 'OK' as const },
-  { id: '2', date: 'Yesterday', time: '05:30 PM', type: 'OUT' as const, gate: 'Gate A — Pedestrian', status: 'OK' as const },
-  { id: '3', date: 'Yesterday', time: '08:05 AM', type: 'IN' as const, gate: 'Gate A — Pedestrian', status: 'OK' as const },
-  { id: '4', date: 'Oct 22', time: '06:15 PM', type: 'OUT' as const, gate: 'Gate B — Staff Exit', status: 'OK' as const },
-  { id: '5', date: 'Oct 22', time: '07:55 AM', type: 'IN' as const, gate: 'Gate A — Pedestrian', status: 'LATE' as const },
-  { id: '6', date: 'Oct 21', time: '05:40 PM', type: 'OUT' as const, gate: 'Gate A — Pedestrian', status: 'OK' as const },
-  { id: '7', date: 'Oct 21', time: '08:10 AM', type: 'IN' as const, gate: 'Gate A — Pedestrian', status: 'OK' as const },
-  { id: '8', date: 'Oct 20', time: '06:00 PM', type: 'OUT' as const, gate: 'Gate B — Staff Exit', status: 'OK' as const },
-];
+import api from '../../lib/api';
 
 export default function ServiceActivity() {
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<FilterTab>('all');
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filters: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: 'All Time' },
-    { key: 'week', label: 'This Week' },
-    { key: 'month', label: 'Last Month' },
-  ];
+  const fetchLogs = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    try {
+      const res = await api.get('/complaints/mine');
+      const all = res.data.data || [];
+      const completed = all.filter((c: any) => c.status === 'RESOLVED' || c.status === 'CLOSED');
+      setLogs(completed);
+    } catch (err) {
+      console.warn('Failed to fetch activity logs:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   return (
     <View style={styles.container}>
@@ -40,74 +44,32 @@ export default function ServiceActivity() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchLogs(true)} tintColor="#25E0A7" />}
       >
-        <Text style={styles.eyebrow}>ATTENDANCE RECORD</Text>
-        <Text style={styles.title}>Activity Log</Text>
+        <Text style={styles.eyebrow}>PERFORMANCE & LOGS</Text>
+        <Text style={styles.title}>Completed Tasks</Text>
 
-        {/* Filter Chips */}
-        <View style={styles.filterRow}>
-          {filters.map((f) => (
-            <TouchableOpacity
-              key={f.key}
-              style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-              onPress={() => setFilter(f.key)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Summary Bar */}
-        <View style={styles.summaryBar}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>16</Text>
-            <Text style={styles.summaryLabel}>Total Entries</Text>
+        {loading ? (
+           <ActivityIndicator size="large" color="#25E0A7" style={{ marginTop: 40 }} />
+        ) : logs.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <MaterialIcons name="done-all" size={48} color="#25293A" />
+            <Text style={styles.emptyText}>No completed tasks found.</Text>
           </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: '#25E0A7' }]}>15</Text>
-            <Text style={styles.summaryLabel}>On Time</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: '#EE7D77' }]}>1</Text>
-            <Text style={styles.summaryLabel}>Late</Text>
-          </View>
-        </View>
-
-        {/* Activity Feed */}
-        {activityLogs.map((log) => (
-          <View key={log.id} style={styles.logCard}>
-            <View style={[styles.logIcon, log.type === 'IN' ? styles.logIconIn : styles.logIconOut]}>
-              <MaterialIcons
-                name={log.type === 'IN' ? 'login' : 'logout'}
-                size={18}
-                color={log.type === 'IN' ? '#25E0A7' : '#9BABCE'}
-              />
-            </View>
-
-            <View style={styles.logInfo}>
-              <View style={styles.logTopRow}>
-                <Text style={styles.logTitle}>
-                  {log.type === 'IN' ? 'Checked In' : 'Checked Out'}
-                </Text>
-                <Text style={styles.logTime}>{log.time}</Text>
+        ) : (
+          logs.map((log) => (
+            <View key={log.id} style={styles.logCard}>
+              <View style={styles.logIconRow}>
+                <MaterialIcons name="check-circle" size={24} color="#25E0A7" />
+                <View>
+                  <Text style={styles.logTitle}>{log.title}</Text>
+                  <Text style={styles.logTime}>{new Date(log.updatedAt).toLocaleString()}</Text>
+                </View>
               </View>
-              <Text style={styles.logDate}>{log.date}</Text>
-              <View style={styles.logBottomRow}>
-                <Text style={styles.logGate}>{log.gate}</Text>
-                {log.status === 'LATE' && (
-                  <View style={styles.lateBadge}>
-                    <Text style={styles.lateBadgeText}>LATE</Text>
-                  </View>
-                )}
-              </View>
+              <Text style={styles.logDesc}>{log.description}</Text>
             </View>
-          </View>
-        ))}
+          ))
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -118,69 +80,17 @@ export default function ServiceActivity() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#090e18' },
   scrollContent: { paddingHorizontal: 20 },
-  eyebrow: {
-    fontFamily: 'Inter-Medium', fontSize: 10, letterSpacing: 3, color: '#9BABCE', marginBottom: 8,
-  },
-  title: {
-    fontFamily: 'Inter-Bold', fontSize: 28, color: '#DEE1F7', marginBottom: 20,
-  },
-
-  /* Filters */
-  filterRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-  },
-  filterChipActive: {
-    backgroundColor: 'rgba(37,224,167,0.1)',
-    borderColor: 'rgba(37,224,167,0.3)',
-  },
-  filterText: { fontFamily: 'Inter-Medium', fontSize: 13, color: '#9BABCE' },
-  filterTextActive: { fontFamily: 'Inter-SemiBold', color: '#25E0A7' },
-
-  /* Summary */
-  summaryBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(20,25,35,0.6)', borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16, marginBottom: 20,
-  },
-  summaryItem: { flex: 1, alignItems: 'center', gap: 4 },
-  summaryValue: { fontFamily: 'Inter-Bold', fontSize: 22, color: '#DEE1F7' },
-  summaryLabel: { fontFamily: 'Inter-Regular', fontSize: 10, color: '#6c7a8f', letterSpacing: 0.5 },
-  summaryDivider: {
-    width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-
-  /* Log Card */
+  eyebrow: { fontFamily: 'Inter-Medium', fontSize: 10, letterSpacing: 3, color: '#9BABCE', marginBottom: 8 },
+  title: { fontFamily: 'Inter-Bold', fontSize: 28, color: '#DEE1F7', marginBottom: 20 },
+  emptyBox: { alignItems: 'center', marginTop: 60, opacity: 0.8 },
+  emptyText: { fontFamily: 'Inter-Medium', color: '#9BABCE', marginTop: 12 },
   logCard: {
-    flexDirection: 'row',
     backgroundColor: 'rgba(20,25,35,0.4)', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-    padding: 14, marginBottom: 8, gap: 14,
+    padding: 16, marginBottom: 12,
   },
-  logIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
-  },
-  logIconIn: {
-    backgroundColor: 'rgba(37,224,167,0.1)', borderColor: 'rgba(37,224,167,0.2)',
-  },
-  logIconOut: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)',
-  },
-  logInfo: { flex: 1, gap: 2 },
-  logTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#DEE1F7' },
-  logTime: { fontFamily: 'Inter-Medium', fontSize: 12, color: '#DEE1F7' },
-  logDate: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9BABCE' },
-  logBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
-  logGate: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#6c7a8f' },
-  lateBadge: {
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999,
-    backgroundColor: 'rgba(238,125,119,0.15)',
-    borderWidth: 1, borderColor: 'rgba(238,125,119,0.3)',
-  },
-  lateBadgeText: { fontFamily: 'Inter-Bold', fontSize: 9, letterSpacing: 1, color: '#EE7D77' },
+  logIconRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  logTitle: { fontFamily: 'Inter-SemiBold', fontSize: 15, color: '#DEE1F7' },
+  logTime: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9BABCE' },
+  logDesc: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#6c7a8f', lineHeight: 20 },
 });

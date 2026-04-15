@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
 
@@ -14,22 +15,41 @@ export default function AdminUsers() {
 
   useEffect(() => { fetchResidents(); }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Remove this resident? This cannot be undone.')) return;
-    try {
-      await api.delete(`/users/${id}`);
-      fetchResidents();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Delete failed.');
-    }
+  const handleDelete = (id) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-bold text-white">Remove Resident?</p>
+        <p className="text-xs text-gray-400">This action cannot be undone.</p>
+        <div className="flex gap-2 mt-2">
+          <button 
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await api.delete(`/users/${id}`);
+                toast.success('Resident removed successfully.');
+                fetchResidents();
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Delete failed.');
+              }
+            }}
+            className="flex-1 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-colors border-none cursor-pointer"
+          >Confirm</button>
+          <button 
+            onClick={() => toast.dismiss(t.id)}
+            className="flex-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors border-none cursor-pointer"
+          >Cancel</button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   };
 
   const handleApprove = async (id) => {
     try {
       await api.patch(`/users/${id}/approve`);
+      toast.success('Resident approved successfully.');
       fetchResidents();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to approve user.');
+      toast.error(err.response?.data?.message || 'Failed to approve user.');
     }
   };
 

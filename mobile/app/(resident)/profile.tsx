@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,7 +43,7 @@ export default function ResidentProfile() {
       setName(data.name ?? '');
       setPhone(data.phone ?? '');
     } catch {
-      Alert.alert('Error', 'Could not load profile. Please try again.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not load profile. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -52,16 +53,16 @@ export default function ResidentProfile() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation', 'Name cannot be empty.');
+      Toast.show({ type: 'error', text1: 'Validation', text2: 'Name cannot be empty.' });
       return;
     }
     setSaving(true);
     try {
       await api.patch('/users/me', { name: name.trim(), phone: phone.trim() });
-      Alert.alert('Saved', 'Your profile has been updated.');
+      Toast.show({ type: 'success', text1: 'Saved', text2: 'Your profile has been updated.' });
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to update profile.';
-      Alert.alert('Error', msg);
+      Toast.show({ type: 'error', text1: 'Error', text2: msg });
     } finally {
       setSaving(false);
     }

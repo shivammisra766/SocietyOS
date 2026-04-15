@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
 
@@ -12,8 +13,6 @@ export default function AdminSettings() {
   const [flatId, setFlatId] = useState('');
   const [flats, setFlats] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Fetch available flats for the resident dropdown
   useEffect(() => {
@@ -29,20 +28,12 @@ export default function AdminSettings() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    setSuccessMsg(''); setErrorMsg('');
 
     const societyId = user?.societyId;
-    if (!societyId) {
-      setErrorMsg('Admin session missing Society ID. Please log out and back in.');
-      return;
-    }
-    if (!role) {
-      setErrorMsg('Please select a role first.');
-      return;
-    }
+    if (!societyId) return toast.error('Admin session missing Society ID. Please re-login.');
+    if (!role)      return toast.error('Please select a role first.');
     if (role === 'RESIDENT' && !flatId) {
-      setErrorMsg('Flat number is required for residents.');
-      return;
+      return toast.error('Flat number is required for residents.');
     }
 
     try {
@@ -54,13 +45,13 @@ export default function AdminSettings() {
         societyId,
         flatId: role === 'RESIDENT' ? flatId : undefined,
       });
-      setSuccessMsg(`${roleLabel(role)} "${name}" created successfully!`);
+      toast.success(`${roleLabel(role)} "${name}" created successfully!`);
       resetForm();
     } catch (err) {
       const msg = err.response?.data?.errors
         ? Object.entries(err.response.data.errors).map(([k, v]) => `${k}: ${v}`).join(', ')
         : err.response?.data?.message || 'Registration failed. Check inputs.';
-      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -96,7 +87,6 @@ export default function AdminSettings() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Left — Role overview */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Role Permissions card */}
             <div className="bg-surface-container-high/30 p-8 rounded-2xl border border-white/5">
               <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                 <span className="material-symbols-outlined text-white">info</span>
@@ -105,7 +95,7 @@ export default function AdminSettings() {
               <div className="space-y-5">
                 {Object.entries(roleConfig).map(([key, cfg]) => (
                   <div key={key} className={`flex items-start gap-3 p-3 rounded-xl transition-all cursor-pointer border ${role === key ? `border-${cfg.color}-500/30 bg-${cfg.color}-500/5` : 'border-transparent hover:bg-white/[0.02]'}`}
-                    onClick={() => { setRole(key); setSuccessMsg(''); setErrorMsg(''); }}
+                    onClick={() => setRole(key)}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${role === key ? 'bg-white text-black' : 'bg-white/5 text-gray-400'} transition-colors`}>
                       <span className="material-symbols-outlined text-xl">{cfg.icon}</span>
@@ -142,12 +132,11 @@ export default function AdminSettings() {
                 </div>
               ) : (
                 <form className="p-8 space-y-5" onSubmit={handleCreate}>
-                  {/* Role selector dropdown */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role</label>
                     <select
                       value={role}
-                      onChange={e => { setRole(e.target.value); setSuccessMsg(''); setErrorMsg(''); }}
+                      onChange={e => setRole(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium appearance-none cursor-pointer"
                       style={{backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center'}}
                     >
@@ -157,7 +146,6 @@ export default function AdminSettings() {
                     </select>
                   </div>
 
-                  {/* Name + Email */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Full Name *</label>
@@ -173,7 +161,6 @@ export default function AdminSettings() {
                     </div>
                   </div>
 
-                  {/* Phone + Password */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</label>
@@ -189,7 +176,6 @@ export default function AdminSettings() {
                     </div>
                   </div>
 
-                  {/* Flat Number — ONLY for RESIDENT */}
                   {role === 'RESIDENT' && (
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Flat Number *</label>
@@ -211,21 +197,6 @@ export default function AdminSettings() {
                     </div>
                   )}
 
-                  {/* Status messages */}
-                  {successMsg && (
-                    <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                      <span className="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
-                      <p className="text-sm font-medium text-emerald-300">{successMsg}</p>
-                    </div>
-                  )}
-                  {errorMsg && (
-                    <div className="flex items-center gap-2 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                      <span className="material-symbols-outlined text-rose-400 text-xl">error</span>
-                      <p className="text-sm font-medium text-rose-300">{errorMsg}</p>
-                    </div>
-                  )}
-
-                  {/* Submit */}
                   <div className="pt-2">
                     <button
                       type="submit"

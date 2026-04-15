@@ -133,6 +133,18 @@ const deleteUser = async (userId, societyId) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.societyId !== societyId) throw new Error('User not found');
   
+  // Clear any assigned complaints (return them to the OPEN pool)
+  await prisma.complaint.updateMany({
+    where: { assignedToId: userId },
+    data: { assignedToId: null, status: 'OPEN' }
+  });
+
+  // Delete all notifications tied to the user
+  await prisma.notification.deleteMany({
+    where: { userId }
+  });
+
+  // Delete the user
   return await prisma.user.delete({ where: { id: userId } });
 };
 

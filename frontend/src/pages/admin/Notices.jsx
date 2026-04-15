@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../api';
 
 export default function AdminNotices() {
@@ -47,18 +48,22 @@ export default function AdminNotices() {
       setPriority('NORMAL');
       setEditNoticeId(null);
       setModalOpen(false);
+      toast.success(editNoticeId ? 'Notice updated.' : 'Notice broadcasted!');
       fetchNotices();
     } catch(err) {
       console.error("Failed to save notice", err);
+      toast.error('Failed to save notice.');
     }
   };
 
   const deleteNotice = async (id) => {
     try {
       await api.delete(`/notices/${id}`);
+      toast.success('Notice removed.');
       fetchNotices();
     } catch(err) {
       console.error("Failed to delete notice", err);
+      toast.error('Failed to delete notice.');
     }
   };
 

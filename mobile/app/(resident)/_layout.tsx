@@ -80,6 +80,20 @@ export default function ResidentLayout() {
             tabBarIcon: ({ color }) => <MaterialIcons name="account-balance-wallet" size={24} color={color} />,
           }}
         />
+        <Tabs.Screen
+          name="complaints"
+          options={{
+            title: 'Tickets',
+            tabBarIcon: ({ color }) => <MaterialIcons name="build" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
+          }}
+        />
         {/* Hide create-pass and notices from tab bar */}
         <Tabs.Screen name="create-pass" options={{ href: null }} />
         <Tabs.Screen name="notices" options={{ href: null }} />

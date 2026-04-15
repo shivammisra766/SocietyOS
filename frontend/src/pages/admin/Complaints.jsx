@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../api';
 
 const PRIORITY_MAP = {
@@ -9,33 +10,64 @@ const PRIORITY_MAP = {
 
 const STATUS_STYLE = {
   OPEN:        'bg-gray-500/10 text-gray-400',
+  ASSIGNED:    'bg-indigo-500/10 text-indigo-400',
   IN_PROGRESS: 'bg-amber-500/10 text-amber-500',
   RESOLVED:    'bg-emerald-500/10 text-emerald-500',
+  CLOSED:      'bg-slate-500/10 text-slate-500',
 };
 
 export default function AdminComplaints() {
   const [complaints, setComplaints] = useState([]);
+  const [serviceStaff, setServiceStaff] = useState([]);
+  const [assigningTicketId, setAssigningTicketId] = useState(null);
 
   const fetchComplaints = () => {
     api.get('/complaints')
       .then(res => setComplaints(res.data.data || []))
       .catch(err => console.error('Failed to fetch complaints:', err));
   };
+  
+  const fetchServiceStaff = () => {
+    api.get('/users?role=SERVICE')
+      .then(res => setServiceStaff(res.data.data || []))
+      .catch(err => console.error('Failed to fetch service staff:', err));
+  };
 
-  useEffect(() => { fetchComplaints(); }, []);
+  useEffect(() => { 
+    fetchComplaints(); 
+    fetchServiceStaff();
+  }, []);
 
   const handleClose = async (id) => {
     try {
       await api.patch(`/complaints/${id}/close`);
+      toast.success('Ticket closed successfully.');
       fetchComplaints();
     } catch (err) {
-      console.error('Failed to close complaint:', err);
-      alert(err.response?.data?.message || 'Failed to close ticket.');
+      console.error('Failed to close ticket:', err);
+      toast.error(err.response?.data?.message || 'Failed to close ticket.');
+    }
+  };
+
+  const handleAssign = async (complaintId, staffId) => {
+    if (!staffId) {
+      setAssigningTicketId(null);
+      return;
+    }
+    try {
+      await api.patch(`/complaints/${complaintId}/assign`, { staffId });
+      toast.success('Ticket assigned.');
+      fetchComplaints();
+    } catch (err) {
+      console.error('Failed to assign ticket:', err);
+      toast.error(err.response?.data?.message || 'Failed to assign ticket.');
+    } finally {
+      setAssigningTicketId(null);
     }
   };
 
   const open       = complaints.filter(c => c.status === 'OPEN').length;
-  const inProgress = complaints.filter(c => c.status === 'IN_PROGRESS').length;
+  const inProgress = complaints.filter(c => c.status === 'IN_PROGRESS' || c.status === 'ASSIGNED').length;
   const resolved   = complaints.filter(c => c.status === 'RESOLVED').length;
 
   return (
@@ -114,10 +146,39 @@ export default function AdminComplaints() {
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded ${sStyle} text-[10px] font-bold uppercase tracking-tight`}>
                           {status.replace('_', ' ')}
                         </span>
+                        {complaint.assignedTo && (
+                          <div className="mt-1 text-xs text-indigo-400">
+                            Assigned: {complaint.assignedTo.name}
+                          </div>
+                        )}
+                        {status === 'OPEN' && assigningTicketId === complaint.id && (
+                          <div className="mt-2 text-xs">
+                            <select 
+                              className="bg-[#090b10] text-gray-300 border border-white/20 rounded p-1 w-full"
+                              onChange={(e) => handleAssign(complaint.id, e.target.value)}
+                              onBlur={() => setAssigningTicketId(null)}
+                              autoFocus
+                            >
+                              <option value="">Select Staff...</option>
+                              {serviceStaff.map(staff => (
+                                <option key={staff.id} value={staff.id}>{staff.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {status !== 'RESOLVED' && (
+                          {status === 'OPEN' && assigningTicketId !== complaint.id && (
+                            <button
+                              onClick={() => setAssigningTicketId(complaint.id)}
+                              className="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-indigo-400 transition-colors bg-transparent border-none cursor-pointer flex items-center"
+                              title="Assign Staff"
+                            >
+                              <span className="material-symbols-outlined text-sm">person_add</span>
+                            </button>
+                          )}
+                          {(status === 'RESOLVED' || status === 'IN_PROGRESS') && (
                             <button
                               onClick={() => handleClose(complaint.id)}
                               className="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-emerald-400 transition-colors bg-transparent border-none cursor-pointer flex items-center"

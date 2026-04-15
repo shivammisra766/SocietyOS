@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const app = require('./src/app');
 const prisma = require('./src/shared/config/prisma');
 const { startPassExpiryCron } = require('./src/shared/cron/passExpiry');
+const { connectRedis } = require('./src/shared/config/redis');
 
 const server = http.createServer(app);
 
@@ -50,6 +51,8 @@ const start = async () => {
   try {
     await prisma.$connect();
     console.log('PostgreSQL connected via Prisma');
+
+    await connectRedis();
 
     // Start cron jobs
     startPassExpiryCron();

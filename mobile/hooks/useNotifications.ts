@@ -108,6 +108,14 @@ async function registerPushToken() {
   if (Platform.OS === 'web') return;
   const N = getNtf();
   if (!N) return;
+
+  // SDK 53+ restriction: Remote notifications are blocked in Expo Go on Android.
+  // We skip token registration to avoid throwing internal Expo errors.
+  if (IN_EXPO_GO && Platform.OS === 'android') {
+    console.log('[Notifications] Skipping push token registration in Expo Go (Android restriction)');
+    return;
+  }
+
   const { status } = await N.getPermissionsAsync();
   if (status !== 'granted') return;
   try {
@@ -116,8 +124,8 @@ async function registerPushToken() {
       await api.post('/users/fcm-token', { token }).catch(() => {});
       console.log('[Notifications] Push token registered');
     }
-  } catch {
-    /* Not available in Expo Go / simulator */
+  } catch (err) {
+    console.warn('[Notifications] Failed to get push token:', err);
   }
 }
 

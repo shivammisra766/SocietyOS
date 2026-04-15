@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../api';
 
 export default function AdminFlats() {
@@ -41,22 +42,41 @@ export default function AdminFlats() {
       setFloor(1);
       setEditFlatId(null);
       setModalOpen(false);
+      toast.success(editFlatId ? 'Flat updated.' : 'Flat registered.');
       fetchFlats();
     } catch(err) {
       console.error("Failed to save flat", err);
-      alert("Failed to save flat. Ensure identifier is unique.");
+      toast.error("Failed to save flat. Ensure identifier is unique.");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this flat?")) return;
-    try {
-      await api.delete(`/flats/${id}`);
-      fetchFlats();
-    } catch(err) {
-      console.error("Failed to delete flat", err);
-      alert("Failed to delete flat. Cannot delete if occupied or referenced.");
-    }
+  const handleDelete = (id) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-bold text-white">Delete Flat?</p>
+        <p className="text-xs text-gray-400">Cannot be deleted if occupied or referenced.</p>
+        <div className="flex gap-2 mt-2">
+          <button 
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await api.delete(`/flats/${id}`);
+                toast.success('Flat deleted.');
+                fetchFlats();
+              } catch (err) {
+                console.error("Failed to delete flat", err);
+                toast.error("Failed to delete flat.");
+              }
+            }}
+            className="flex-1 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-colors border-none cursor-pointer"
+          >Confirm</button>
+          <button 
+            onClick={() => toast.dismiss(t.id)}
+            className="flex-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors border-none cursor-pointer"
+          >Cancel</button>
+        </div>
+      </div>
+    ), { duration: Infinity });
   };
 
   return (

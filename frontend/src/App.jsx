@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminLayout from './components/AdminLayout';
 import AdminUsers from './pages/admin/Users';
 import AdminGuards from './pages/admin/Guards';
+import AdminServiceStaff from './pages/admin/ServiceStaff';
 import AdminFlats from './pages/admin/Flats';
 import AdminEntries from './pages/admin/EntryLog';
 import AdminComplaints from './pages/admin/Complaints';
@@ -21,10 +24,21 @@ import ServiceDashboard from './pages/service/Dashboard';
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }
+        }}
+      />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/admin" element={
             <ProtectedRoute roles={['ADMIN']}>
               <AdminLayout />
@@ -33,6 +47,7 @@ export default function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="security" element={<AdminGuards />} />
+            <Route path="service" element={<AdminServiceStaff />} />
             <Route path="flats" element={<AdminFlats />} />
             <Route path="entries" element={<AdminEntries />} />
             <Route path="complaints" element={<AdminComplaints />} />

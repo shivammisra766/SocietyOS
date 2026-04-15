@@ -14,6 +14,7 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -94,15 +95,16 @@ export default function ResidentCreatePass() {
 
   const handleGenerate = async () => {
     if (!guestName.trim() || !phone.trim()) {
-      Alert.alert('Missing Fields', 'Please enter guest name and phone number.');
+      Toast.show({ type: 'error', text1: 'Missing Fields', text2: 'Please enter guest name and phone number.' });
       return;
     }
     // Validate: visit date must be in the future
     if (date.getTime() < Date.now() - 60000) {   // 1-minute grace
-      Alert.alert(
-        'Invalid Date',
-        'The visit date and time must be in the future. Please pick a valid date.',
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Date',
+        text2: 'The visit date and time must be in the future. Please pick a valid date.',
+      });
       return;
     }
     setLoading(true);
@@ -122,7 +124,7 @@ export default function ResidentCreatePass() {
       setShowQrModal(true);
     } catch (err: any) {
       triggerHaptic('error');
-      Alert.alert('Error', err?.response?.data?.message || 'Failed to generate pass.');
+      Toast.show({ type: 'error', text1: 'Error', text2: err?.response?.data?.message || 'Failed to generate pass.' });
     } finally {
       setLoading(false);
     }
@@ -135,7 +137,7 @@ export default function ResidentCreatePass() {
       const uri = await captureRef(qrCardRef, { format: 'png', quality: 1 });
       const canShare = await Sharing.isAvailableAsync();
       if (!canShare) {
-        Alert.alert('Sharing unavailable', 'Your device does not support sharing files.');
+        Toast.show({ type: 'error', text1: 'Sharing unavailable', text2: 'Your device does not support sharing files.' });
         return;
       }
       await Sharing.shareAsync(uri, {
@@ -144,7 +146,7 @@ export default function ResidentCreatePass() {
         UTI: 'public.png',
       });
     } catch {
-      Alert.alert('Share Failed', 'Could not capture QR card. Please try again.');
+      Toast.show({ type: 'error', text1: 'Share Failed', text2: 'Could not capture QR card. Please try again.' });
     } finally {
       setSharing(false);
     }

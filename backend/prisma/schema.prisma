@@ -58,6 +58,7 @@ model User {
   notices         Notice[]
   notifications   Notification[]
   passes          Pass[]
+  assignedComplaints Complaint[] @relation("AssignedComplaints")
   flat            Flat?          @relation(fields: [flatId], references: [id])
   society         Society        @relation(fields: [societyId], references: [id])
 
@@ -161,20 +162,24 @@ model Complaint {
   title       String
   description String
   category    ComplaintCategory
+  priority    PriorityLevel     @default(LOW)
   status      ComplaintStatus   @default(OPEN)
   photos      String[]
   closingNote String?
+  assignedToId String?
   flatId      String
   userId      String
   societyId   String
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  assignedTo  User?             @relation("AssignedComplaints", fields: [assignedToId], references: [id])
   flat        Flat              @relation(fields: [flatId], references: [id])
   society     Society           @relation(fields: [societyId], references: [id])
   user        User              @relation(fields: [userId], references: [id])
 
   @@index([societyId])
   @@index([userId])
+  @@index([assignedToId])
 }
 
 enum Role {
@@ -192,7 +197,16 @@ enum UserStatus {
 
 enum ComplaintStatus {
   OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
   CLOSED
+}
+
+enum PriorityLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum ComplaintCategory {

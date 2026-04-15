@@ -51,6 +51,7 @@ export default function Sidebar() {
           <NavItem to="/admin" end={true} icon="space_dashboard" label="Dashboard Overview" />
           <NavItem to="/admin/users" icon="group" label="Resident Directory" />
           <NavItem to="/admin/security" icon="local_police" label="Security & Guards" />
+          <NavItem to="/admin/service" icon="engineering" label="Service Staff" />
           <NavItem to="/admin/settings" icon="admin_panel_settings" label="Roles & Access" />
         </nav>
       </div>

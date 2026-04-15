@@ -1,29 +1,110 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import Toast from 'react-native-toast-message';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Animated,
+  ActivityIndicator,
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '../../lib/api';
+import { useAuth } from '../../hooks/useAuth';
 
-export default function ServiceHome() {
+export default function ServiceDashboard() {
   const insets = useSafeAreaInsets();
-  const glowAnim = useRef(new Animated.Value(0.4)).current;
+  const { user } = useAuth();
+  
+  const [complaints, setComplaints] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchTasks = async () => {
+    try {
+      const res = await api.get('/complaints/mine');
+      setComplaints(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.4, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [glowAnim]);
+    fetchTasks();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchTasks();
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      setLoading(true);
+      await api.patch(`/complaints/${id}/status`, { status });
+      await fetchTasks();
+    } catch (err: any) {
+      console.error('Failed to update status:', err);
+      Toast.show({ type: 'error', text1: 'Error', text2: err.response?.data?.message || 'Failed to update task.' });
+      setLoading(false);
+    }
+  };
+
+  const assignedTasks = complaints.filter(c => c.status === 'ASSIGNED');
+  const inProgressTasks = complaints.filter(c => c.status === 'IN_PROGRESS');
+  const pastTasks = complaints.filter(c => c.status === 'RESOLVED' || c.status === 'CLOSED');
+
+  const renderTask = (task: any) => {
+    const isAssigned = task.status === 'ASSIGNED';
+    const isInProgress = task.status === 'IN_PROGRESS';
+    const isResolved = task.status === 'RESOLVED' || task.status === 'CLOSED';
+
+    return (
+      <View key={task.id} style={styles.taskCard}>
+        <View style={styles.taskHeader}>
+          <View>
+            <Text style={styles.taskTitle}>{task.title}</Text>
+            <Text style={styles.taskSubtitle}>Flat {task.flat?.number || 'Unknown'} • {task.priority || 'LOW'} Priority</Text>
+          </View>
+          <View style={[styles.statusBadge, isResolved ? styles.statusClosed : isInProgress ? styles.statusProgress : styles.statusAssigned]}>
+            <Text style={[styles.statusText, isResolved ? styles.textClosed : isInProgress ? styles.textProgress : styles.textAssigned]}>
+              {task.status.replace('_', ' ')}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.taskDesc}>{task.description}</Text>
+
+        <View style={styles.actionsBox}>
+          {isAssigned && (
+            <TouchableOpacity 
+              style={[styles.actionBtn, styles.btnStart]} 
+              onPress={() => updateStatus(task.id, 'IN_PROGRESS')}
+            >
+              <MaterialIcons name="play-arrow" size={16} color="#000" />
+              <Text style={[styles.actionBtnText, { color: '#000' }]}>Start Work</Text>
+            </TouchableOpacity>
+          )}
+          {isInProgress && (
+             <TouchableOpacity 
+              style={[styles.actionBtn, styles.btnResolve]} 
+              onPress={() => updateStatus(task.id, 'RESOLVED')}
+            >
+              <MaterialIcons name="check" size={16} color="#fff" />
+              <Text style={styles.actionBtnText}>Mark Resolved</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -32,120 +113,45 @@ export default function ServiceHome() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25E0A7" />}
       >
-        {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.name}>Sunita Devi</Text>
-          </View>
-          <TouchableOpacity style={styles.bellBtn}>
-            <MaterialIcons name="notifications-none" size={22} color="#9BABCE" />
-            <View style={styles.notifDot} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Digital ID Card ── */}
-        <View style={styles.idCardOuter}>
-          {/* Animated glow ring */}
-          <Animated.View style={[styles.glowRing, { opacity: glowAnim }]} />
-
-          <View style={styles.idCard}>
-            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
-
-            {/* Top: Avatar + Info + Verified */}
-            <View style={styles.idTop}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>SD</Text>
-              </View>
-              <View style={styles.idInfo}>
-                <Text style={styles.idName}>Sunita Devi</Text>
-                <Text style={styles.idRole}>Housekeeping</Text>
-                <Text style={styles.idNumber}>ID: SO-2023-A84</Text>
-              </View>
-              <View style={styles.verifiedBadge}>
-                <MaterialIcons name="verified" size={14} color="#25E0A7" />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            </View>
-
-            {/* QR Code */}
-            <View style={styles.qrWrapper}>
-              <View style={styles.qrInner}>
-                <MaterialIcons name="qr-code-2" size={120} color="#1a1a2e" />
-              </View>
-            </View>
-            <Text style={styles.qrHint}>Scan at gate for entry / exit</Text>
+            <Text style={styles.greeting}>Service Dashboard,</Text>
+            <Text style={styles.name}>{user?.name || 'Staff'}</Text>
           </View>
         </View>
 
-        {/* ── Stats Bento ── */}
-        <Text style={styles.sectionLabel}>MONTHLY STATS</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <MaterialIcons name="schedule" size={18} color="#9BABCE" />
-            </View>
-            <Text style={styles.statValue}>184</Text>
-            <Text style={styles.statLabel}>Shift Hours</Text>
-            <View style={styles.statTrend}>
-              <MaterialIcons name="trending-up" size={12} color="#25E0A7" />
-              <Text style={styles.statTrendText}>+8%</Text>
-            </View>
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <MaterialIcons name="check-circle-outline" size={18} color="#25E0A7" />
-            </View>
-            <Text style={styles.statValue}>22/24</Text>
-            <Text style={styles.statLabel}>Attendance</Text>
-            <View style={styles.statTrend}>
-              <MaterialIcons name="trending-up" size={12} color="#25E0A7" />
-              <Text style={styles.statTrendText}>92%</Text>
-            </View>
-          </View>
-        </View>
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#25E0A7" style={{ marginTop: 40 }} />
+        ) : (
+          <>
+            {inProgressTasks.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>CURRENTLY WORKING</Text>
+                {inProgressTasks.map(renderTask)}
+              </>
+            )}
 
-        {/* ── Recent Activity ── */}
-        <Text style={styles.sectionLabel}>RECENT ACTIVITY</Text>
-        <View style={styles.activityCard}>
-          {/* Entry 1 */}
-          <View style={styles.activityRow}>
-            <View style={[styles.activityIcon, styles.activityIconIn]}>
-              <MaterialIcons name="login" size={16} color="#25E0A7" />
-            </View>
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityTitle}>Checked In</Text>
-              <Text style={styles.activityTime}>Today, 08:15 AM • Gate A</Text>
-            </View>
-          </View>
+            <Text style={[styles.sectionLabel, { marginTop: inProgressTasks.length ? 12 : 0 }]}>
+              NEW ASSIGNMENTS ({assignedTasks.length})
+            </Text>
+            {assignedTasks.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>No new assignments right now.</Text>
+              </View>
+            ) : (
+              assignedTasks.map(renderTask)
+            )}
 
-          <View style={styles.activityDivider} />
-
-          {/* Entry 2 */}
-          <View style={styles.activityRow}>
-            <View style={[styles.activityIcon, styles.activityIconOut]}>
-              <MaterialIcons name="logout" size={16} color="#9BABCE" />
-            </View>
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityTitle}>Checked Out</Text>
-              <Text style={styles.activityTime}>Yesterday, 05:30 PM • Gate A</Text>
-            </View>
-          </View>
-
-          <View style={styles.activityDivider} />
-
-          {/* Entry 3 */}
-          <View style={styles.activityRow}>
-            <View style={[styles.activityIcon, styles.activityIconIn]}>
-              <MaterialIcons name="login" size={16} color="#25E0A7" />
-            </View>
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityTitle}>Checked In</Text>
-              <Text style={styles.activityTime}>Yesterday, 08:05 AM • Gate A</Text>
-            </View>
-          </View>
-        </View>
+            {pastTasks.length > 0 && (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: 20 }]}>RECENTLY COMPLETED</Text>
+                {pastTasks.slice(0, 5).map(renderTask)}
+              </>
+            )}
+          </>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -156,118 +162,68 @@ export default function ServiceHome() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#090e18' },
   scrollContent: { paddingHorizontal: 20 },
-
-  /* Header */
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28,
+    marginBottom: 28,
   },
   greeting: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#9BABCE' },
   name: { fontFamily: 'Inter-Bold', fontSize: 24, color: '#DEE1F7', marginTop: 2 },
-  bellBtn: {
-    width: 44, height: 44, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center',
-  },
-  notifDot: {
-    position: 'absolute', top: 11, right: 12,
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#25E0A7', borderWidth: 1.5, borderColor: '#090e18',
-  },
-
-  /* Digital ID Card */
-  idCardOuter: {
-    marginBottom: 28, alignItems: 'center',
-  },
-  glowRing: {
-    position: 'absolute', top: -8, left: -8, right: -8, bottom: -8,
-    borderRadius: 32, borderWidth: 2, borderColor: 'rgba(37,224,167,0.25)',
-  },
-  idCard: {
-    width: '100%',
-    borderRadius: 24, padding: 24,
-    backgroundColor: 'rgba(20,25,35,0.6)',
-    borderWidth: 1, borderColor: 'rgba(37,224,167,0.3)',
-    overflow: 'hidden',
-  },
-  idTop: {
-    flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20,
-  },
-  avatar: {
-    width: 56, height: 56, borderRadius: 16,
-    backgroundColor: '#25293A', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: 'rgba(83,254,194,0.2)',
-  },
-  avatarText: { fontFamily: 'Inter-Bold', fontSize: 18, color: '#53FEC2' },
-  idInfo: { flex: 1, marginLeft: 14, gap: 2 },
-  idName: { fontFamily: 'Inter-Bold', fontSize: 18, color: '#DEE1F7' },
-  idRole: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#9BABCE' },
-  idNumber: { fontFamily: 'Inter-Medium', fontSize: 11, color: '#6c7a8f', letterSpacing: 1, marginTop: 2 },
-  verifiedBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
-    backgroundColor: 'rgba(37,224,167,0.1)',
-  },
-  verifiedText: { fontFamily: 'Inter-Medium', fontSize: 10, color: '#25E0A7' },
-
-  qrWrapper: { alignItems: 'center', marginBottom: 12 },
-  qrInner: {
-    padding: 16, backgroundColor: '#FFFFFF', borderRadius: 16,
-  },
-  qrHint: {
-    fontFamily: 'Inter-Regular', fontSize: 12, color: '#9BABCE', textAlign: 'center',
-  },
-
-  /* Section Labels */
   sectionLabel: {
-    fontFamily: 'Inter-Bold', fontSize: 10, letterSpacing: 3,
+    fontFamily: 'Inter-Bold', fontSize: 11, letterSpacing: 2,
     color: '#9BABCE', marginBottom: 12,
   },
-
-  /* Stats */
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
-  statCard: {
-    flex: 1,
+  emptyBox: {
+    padding: 20,
+    backgroundColor: 'rgba(20,25,35,0.4)',
+    borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontFamily: 'Inter-Regular', fontSize: 13, color: '#6c7a8f',
+  },
+  taskCard: {
     backgroundColor: 'rgba(20,25,35,0.6)', borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16, gap: 6,
-  },
-  statIconWrap: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  statValue: { fontFamily: 'Inter-Bold', fontSize: 28, color: '#DEE1F7' },
-  statLabel: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#6c7a8f' },
-  statTrend: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999,
-    backgroundColor: 'rgba(37,224,167,0.1)',
-  },
-  statTrendText: { fontFamily: 'Inter-SemiBold', fontSize: 10, color: '#25E0A7' },
-
-  /* Activity */
-  activityCard: {
-    backgroundColor: 'rgba(20,25,35,0.6)', borderRadius: 20,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
     padding: 16,
+    marginBottom: 16,
   },
-  activityRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  activityIcon: {
-    width: 38, height: 38, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', marginRight: 14,
-    borderWidth: 1,
+  taskHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  activityIconIn: {
-    backgroundColor: 'rgba(37,224,167,0.1)', borderColor: 'rgba(37,224,167,0.2)',
+  taskTitle: {
+    fontFamily: 'Inter-Bold', fontSize: 16, color: '#DEE1F7',
   },
-  activityIconOut: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)',
+  taskSubtitle: {
+    fontFamily: 'Inter-Medium', fontSize: 12, color: '#6c7a8f', marginTop: 2,
   },
-  activityInfo: { flex: 1, gap: 2 },
-  activityTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: '#DEE1F7' },
-  activityTime: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#6c7a8f' },
-  activityDivider: {
-    height: 1, backgroundColor: 'rgba(255,255,255,0.04)',
-    marginLeft: 52, marginVertical: 8,
+  statusBadge: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+  },
+  statusAssigned: { backgroundColor: 'rgba(99,102,241,0.15)' },
+  statusProgress: { backgroundColor: 'rgba(245,158,11,0.15)' },
+  statusClosed: { backgroundColor: 'rgba(52,211,153,0.15)' },
+  
+  statusText: { fontFamily: 'Inter-Bold', fontSize: 10, letterSpacing: 0.5 },
+  textAssigned: { color: '#818cf8' },
+  textProgress: { color: '#fbbf24' },
+  textClosed: { color: '#34d399' },
+
+  taskDesc: {
+    fontFamily: 'Inter-Regular', fontSize: 14, color: '#9BABCE',
+    lineHeight: 20, marginBottom: 16,
+  },
+  actionsBox: {
+    flexDirection: 'row', justifyContent: 'flex-end',
+  },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 8, gap: 6,
+  },
+  btnStart: { backgroundColor: '#25E0A7' },
+  btnResolve: { backgroundColor: '#3b82f6' },
+  actionBtnText: {
+    fontFamily: 'Inter-Bold', fontSize: 12, color: '#fff',
   },
 });

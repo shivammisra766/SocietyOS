@@ -19,6 +19,8 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
+import Toast from 'react-native-toast-message';
+
 /**
  * AppShell — mounted inside IncomingVisitorProvider + AuthProvider.
  * useNotifications can now call useIncomingVisitor() to surface the call modal.
@@ -37,6 +39,9 @@ function AppShell() {
 
       {/* Global call-style overlay — renders on top of every screen */}
       <IncomingVisitorAlert />
+      
+      {/* Toast overlay */}
+      <Toast />
     </>
   );
 }

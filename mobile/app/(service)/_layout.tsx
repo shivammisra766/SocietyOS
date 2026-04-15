@@ -42,9 +42,9 @@ export default function ServiceLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Tickets',
           tabBarIcon: ({ color }) => (
-            <MaterialIcons name="qr-code-2" size={24} color={color} />
+            <MaterialIcons name="engineering" size={24} color={color} />
           ),
         }}
       />

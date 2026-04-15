@@ -118,6 +118,21 @@ export default function ResidentHome() {
           </View>
         </View>
 
+        <TouchableOpacity 
+          style={styles.serviceTicketBtn}
+          onPress={() => router.push('/(resident)/complaints' as any)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.serviceTicketIconWrap}>
+            <MaterialIcons name="build-circle" size={24} color="#C084FC" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.serviceTicketTitle}>Service & Maintenance</Text>
+            <Text style={styles.serviceTicketSub}>Report issues to facility management</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={20} color="#9BABCE" />
+        </TouchableOpacity>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>RECENT VISITORS</Text>
           <TouchableOpacity onPress={() => router.push('/(resident)/visitors')}>
@@ -283,6 +298,39 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     color: '#DEE1F7',
+  },
+
+  serviceTicketBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(20,25,35,0.6)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    padding: 16,
+    marginBottom: 24,
+    gap: 14,
+  },
+  serviceTicketIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(192,132,252,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(192,132,252,0.2)',
+  },
+  serviceTicketTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: '#DEE1F7',
+    marginBottom: 2,
+  },
+  serviceTicketSub: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#9BABCE',
   },
 
   visitorCard: {

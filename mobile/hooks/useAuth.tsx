@@ -6,6 +6,8 @@
  */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSegments } from 'expo-router';
+import { Platform } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import api, {
   storeToken,
   storeUser,
@@ -88,8 +90,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = await getStoredUser();
 
         if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(storedUser as unknown as AuthUser);
+          const userObj = storedUser as unknown as AuthUser;
+
+          // Biometric check for Resident on Android
+          if (userObj.role === 'RESIDENT' && Platform.OS === 'android') {
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+            if (hasHardware && isEnrolled) {
+              const authResult = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Login to SocietyOS',
+                fallbackLabel: 'Use Password',
+              });
+
+              if (authResult.success) {
+                setToken(storedToken);
+                setUser(userObj);
+              } else {
+                await removeToken();
+                await removeUser();
+              }
+            } else {
+              setToken(storedToken);
+              setUser(userObj);
+            }
+          } else {
+            setToken(storedToken);
+            setUser(userObj);
+          }
         }
       } catch {
         // Corrupted storage — clear
@@ -146,12 +174,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-}
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext);

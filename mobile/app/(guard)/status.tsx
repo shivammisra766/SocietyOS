@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import GuardHeader from '../../components/GuardHeader';
@@ -132,7 +133,7 @@ export default function GuardStatus() {
       triggerHaptic('light');
       setOnPremises(prev => prev.filter(v => v.id !== id));
     } catch {
-      Alert.alert('Error', 'Could not log exit. Try again.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Could not log exit. Try again.' });
     } finally {
       setExitingId(null);
     }
@@ -140,8 +141,8 @@ export default function GuardStatus() {
 
   /* Submit walk-in */
   const handleConfirm = async () => {
-    if (!name.trim())  return Alert.alert('Required', 'Enter visitor name.');
-    if (!selectedFlat) return Alert.alert('Required', 'Select a destination flat.');
+    if (!name.trim())  return Toast.show({ type: 'error', text1: 'Required', text2: 'Enter visitor name.' });
+    if (!selectedFlat) return Toast.show({ type: 'error', text1: 'Required', text2: 'Select a destination flat.' });
     setSubmitting(true);
     try {
       await api.post('/entry/walkin', {
@@ -151,13 +152,13 @@ export default function GuardStatus() {
         flatId:       selectedFlat.id,
       });
       triggerHaptic('success');
-      Alert.alert('Sent', `Entry request sent to residents of Flat ${selectedFlat.number}. Awaiting approval.`);
+      Toast.show({ type: 'success', text1: 'Sent', text2: `Entry request sent to residents of Flat ${selectedFlat.number}. Awaiting approval.` });
       setName(''); setPhone(''); setVisitorType('GUEST');
       setSelectedFlat(null); setFlatSearch('');
       setShowForm(false);
       fetchOnPremises();
     } catch (err: any) {
-      Alert.alert('Error', err?.response?.data?.message || 'Failed to submit.');
+      Toast.show({ type: 'error', text1: 'Error', text2: err?.response?.data?.message || 'Failed to submit.' });
     } finally {
       setSubmitting(false);
     }

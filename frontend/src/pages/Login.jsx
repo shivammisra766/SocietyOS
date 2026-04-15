@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
@@ -81,7 +81,7 @@ export default function Login() {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider" htmlFor="password">Password</label>
-                <a href="#" className="text-[10px] font-bold text-white/50 hover:text-white transition-colors uppercase tracking-widest">Forgot?</a>
+                <Link to="/forgot-password" className="text-[10px] font-bold text-white/50 hover:text-white transition-colors uppercase tracking-widest">Forgot?</Link>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
