@@ -30,3 +30,19 @@ export async function removeItem(key: string): Promise<void> {
   }
   await SecureStore.deleteItemAsync(key);
 }
+
+export async function setJsonItem<T>(key: string, value: T): Promise<void> {
+  await setItem(key, JSON.stringify(value));
+}
+
+export async function getJsonItem<T>(key: string): Promise<T | null> {
+  const raw = await getItem(key);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    await removeItem(key);
+    return null;
+  }
+}

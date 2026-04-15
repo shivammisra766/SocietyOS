@@ -71,11 +71,11 @@ export default function GuardSettings() {
             <Text style={styles.profileRole}>Security Officer</Text>
             <View style={styles.badgeRow}>
               <View style={styles.idBadge}>
-                <Text style={styles.idBadgeText}>SG-2024-047</Text>
+                <Text style={styles.idBadgeText}>ID-{user?.id?.slice(-6).toUpperCase() ?? '------'}</Text>
               </View>
               <View style={styles.shiftBadge}>
                 <View style={styles.shiftDot} />
-                <Text style={styles.shiftText}>Day Shift</Text>
+                <Text style={styles.shiftText}>Active</Text>
               </View>
             </View>
           </View>

@@ -218,7 +218,7 @@ export default function LoginScreen() {
                 <Text style={styles.loginButtonText}>AUTHENTICATING...</Text>
               ) : (
                 <>
-                  <MaterialIcons name="lock-open" size={18} color="#dbe5ff" />
+                  <MaterialIcons name="lock-open" size={18} color="#91a0c7ff" />
                   <Text style={styles.loginButtonText}>AUTHENTICATE</Text>
                 </>
               )}

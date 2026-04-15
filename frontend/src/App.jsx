@@ -56,6 +56,7 @@ export default function App() {
               <ServiceDashboard />
             </ProtectedRoute>
           } />
+          <Route path="/unauthorized" element={<Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>

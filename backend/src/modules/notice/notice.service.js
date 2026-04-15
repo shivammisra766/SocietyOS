@@ -1,7 +1,7 @@
 const prisma = require('../../shared/config/prisma');
 
-const createNotice = async (user, data) => {
-  return await prisma.notice.create({
+const createNotice = async (user, data, io) => {
+  const notice = await prisma.notice.create({
     data: {
       title: data.title,
       body: data.body,
@@ -10,8 +10,15 @@ const createNotice = async (user, data) => {
       isPinned: data.isPinned || false,
       authorId: user.id,
       societyId: user.societyId,
-    }
+    },
+    include: { author: { select: { name: true } } }
   });
+
+  if (io && user.societyId) {
+    io.to(`society_${user.societyId}`).emit('notice:new', notice);
+  }
+  
+  return notice;
 };
 
 const getNotices = async (societyId) => {

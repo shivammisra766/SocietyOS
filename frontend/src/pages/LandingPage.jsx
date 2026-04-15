@@ -121,9 +121,11 @@ export default function LandingPage() {
             verification tool that works in under 30 seconds.
           </p>
           <div className="reveal flex flex-col sm:flex-row items-center gap-4 mb-12">
-            <button className="bg-white text-black px-8 py-3.5 font-semibold rounded-xl hover:bg-neutral-200 transition-all shadow-[0_4px_24px_rgba(255,255,255,0.1)]">
+            <Link
+              to='/login'
+              className="bg-white text-black px-8 py-3.5 font-semibold rounded-xl hover:bg-neutral-200 transition-all shadow-[0_4px_24px_rgba(255,255,255,0.1)] cursor-pointer">
               Request Early Access
-            </button>
+            </Link>
             <a
               href="#how-it-works"
               className="inline-flex items-center justify-center bg-white/5 border border-white/15 text-white px-8 py-3.5 font-medium rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm"

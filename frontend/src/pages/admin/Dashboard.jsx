@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { io } from 'socket.io-client';
 import api from '../../api';
 
 /* ── colour palette for donut slices ── */
@@ -56,27 +57,43 @@ export default function AdminDashboard() {
   const [chartData, setChartData] = useState({ gateActivity: [], complaintBreakdown: [] });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const [statsRes, entriesRes, chartsRes] = await Promise.all([
-          api.get('/dashboard/stats'),
-          api.get('/entry?limit=5'),
-          api.get('/dashboard/charts'),
-        ]);
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const [statsRes, entriesRes, chartsRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/entry?limit=5'),
+        api.get('/dashboard/charts'),
+      ]);
 
-        if (statsRes?.data?.data)   setStats(statsRes.data.data);
-        if (entriesRes?.data?.data) setRecentEntries(entriesRes.data.data);
-        if (chartsRes?.data?.data)  setChartData(chartsRes.data.data);
-      } catch (err) {
-        console.error('Dashboard fetch failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
+      if (statsRes?.data?.data)   setStats(statsRes.data.data);
+      if (entriesRes?.data?.data) setRecentEntries(entriesRes.data.data);
+      if (chartsRes?.data?.data)  setChartData(chartsRes.data.data);
+    } catch (err) {
+      console.error('Dashboard fetch failed:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
+      : 'http://localhost:5000';
+      
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on('entry:new', fetchDashboard);
+    socket.on('entry:updated', fetchDashboard);
+    socket.on('complaint:new', fetchDashboard);
+    socket.on('user:new', fetchDashboard);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -257,7 +274,7 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 text-white">{name}</td>
                         <td className="px-6 py-4 text-slate-400">{type}</td>
                         <td className="px-6 py-4 text-slate-300">{entry.status || 'Entered'}</td>
-                        <td className="px-6 py-4 text-slate-500">{entry.gateScanned || 'MAIN-01'}</td>
+                        <td className="px-6 py-4 text-slate-500">{entry.guard?.name || 'Gate 1'}</td>
                         <td className="px-6 py-4 text-right text-slate-400">{time}</td>
                       </tr>
                     );

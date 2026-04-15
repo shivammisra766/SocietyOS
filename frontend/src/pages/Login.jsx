@@ -150,13 +150,11 @@ export default function Login() {
         </div>
       </main>
       
-      {/* Decorative Background Image/Texture */}
-      <div className="fixed inset-0 pointer-events-none opacity-20 overflow-hidden z-0">
-        <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS105mJnclB5xDzQKpwhnt-oQOzDCed5PjSomMoCTKRTus903VChpwEg09l_emMrvFBhNNjcWlaOhBGaptd_0tYCh6LNWJlGlysORkqqWhqCcgqmEELxLa0oRaX-iqWPlaCzMC_S4GWrYummWaEWqEstwFgwjN9G2EuB3lMJepFsSKN8yX0BSeCgIL06cEAYYt0_T0awtTqM-uBWAbjcvJhrTdh5RpLUhis2RdT93thgL_87X4KIzX1JUsI9UxZ550R3oqpNP2xgmm" 
-          alt="Abstract deep space circuit board patterns" 
-          className="w-full h-full object-cover filter grayscale blur-sm" 
-        />
+      {/* Decorative Background — radial glow meshes */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+        <div style={{position:'absolute',width:'70vw',height:'70vw',borderRadius:'50%',background:'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',top:'-20vw',left:'-15vw'}} />
+        <div style={{position:'absolute',width:'60vw',height:'60vw',borderRadius:'50%',background:'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)',bottom:'-15vw',right:'-10vw'}} />
+        <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)',backgroundSize:'60px 60px',opacity:0.5}} />
       </div>
     </div>
   );

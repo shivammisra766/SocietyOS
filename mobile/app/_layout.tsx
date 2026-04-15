@@ -5,6 +5,9 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
 import { AuthProvider } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
+import { IncomingVisitorProvider } from '../context/IncomingVisitorContext';
+import IncomingVisitorAlert from '../components/IncomingVisitorAlert';
 
 import {
   Inter_300Light,
@@ -16,34 +19,48 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * AppShell — mounted inside IncomingVisitorProvider + AuthProvider.
+ * useNotifications can now call useIncomingVisitor() to surface the call modal.
+ */
+function AppShell() {
+  useNotifications();
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)"     options={{ headerShown: false }} />
+        <Stack.Screen name="(resident)" options={{ headerShown: false }} />
+        <Stack.Screen name="(guard)"    options={{ headerShown: false }} />
+        <Stack.Screen name="(service)"  options={{ headerShown: false }} />
+      </Stack>
+      <StatusBar style="light" backgroundColor="transparent" translucent />
+
+      {/* Global call-style overlay — renders on top of every screen */}
+      <IncomingVisitorAlert />
+    </>
+  );
+}
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    'Inter-Light': Inter_300Light,
-    'Inter-Regular': Inter_400Regular,
-    'Inter-Medium': Inter_500Medium,
+    'Inter-Light':    Inter_300Light,
+    'Inter-Regular':  Inter_400Regular,
+    'Inter-Medium':   Inter_500Medium,
     'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
+    'Inter-Bold':     Inter_700Bold,
   });
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
-  if (!loaded && !error) {
-    return null;
-  }
+  if (!loaded && !error) return null;
 
   return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(resident)" options={{ headerShown: false }} />
-        <Stack.Screen name="(guard)" options={{ headerShown: false }} />
-        <Stack.Screen name="(service)" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="light" backgroundColor="transparent" translucent />
-    </AuthProvider>
+    <IncomingVisitorProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </IncomingVisitorProvider>
   );
 }

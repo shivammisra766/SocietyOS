@@ -29,6 +29,12 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   // Join user's personal room for notifications
   socket.join(socket.user.id);
+  
+  // Join society room for broadcast notices
+  if (socket.user.societyId) {
+    socket.join(`society_${socket.user.societyId}`);
+  }
+  
   console.log(`[Socket] User ${socket.user.id} connected`);
 
   socket.on('disconnect', () => {

@@ -1,4 +1,5 @@
 const prisma = require('../../shared/config/prisma');
+const { sendPushNotification } = require('../../shared/config/pushNotification');
 
 const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, visitorType, flatId, societyId }, io) => {
   // Find resident(s) for this flat
@@ -43,23 +44,35 @@ const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, 
         message: `${visitorName} is at the gate requesting entry`,
         entry
       });
+      // Send real push notification for background delivery
+      void sendPushNotification(
+        resident.id, 
+        '🏠 Visitor at Gate', 
+        `${visitorName} is at the gate requesting entry to your flat`,
+        { entryId: entry.id, type: 'WALK_IN_REQUEST', visitorName }
+      );
     });
   }
 
   return entry;
 };
 
-const createScanEntry = async (guardUser, passId) => {
+const createScanEntry = async (guardUser, qrToken) => {
   const pass = await prisma.pass.findUnique({
-    where: { id: passId },
+    where: { qrToken },
     include: { flat: { select: { number: true } } }
   });
-  if (!pass) throw new Error('Pass not found');
+  if (!pass) throw new Error('Pass not found or invalid QR code');
   if (pass.societyId !== guardUser.societyId) throw new Error('Pass not in your society');
+  if (pass.status !== 'ACTIVE') throw new Error(`Pass is already ${pass.status.toLowerCase()}`);
+  if (pass.expiresAt && new Date(pass.expiresAt) < new Date()) {
+    await prisma.pass.update({ where: { id: pass.id }, data: { status: 'EXPIRED' } });
+    throw new Error('Pass has expired');
+  }
 
   // Mark one-time pass as USED
-  if (pass.type === 'ONE_TIME' && pass.status === 'ACTIVE') {
-    await prisma.pass.update({ where: { id: passId }, data: { status: 'USED' } });
+  if (pass.type === 'ONE_TIME') {
+    await prisma.pass.update({ where: { id: pass.id }, data: { status: 'USED' } });
   }
 
   const entry = await prisma.entryLog.create({
@@ -186,8 +199,56 @@ const updateEntryStatus = async (id, status, io) => {
     });
   }
 
-  if (io && entry.guardId) {
-    io.to(entry.guardId).emit('entry:updated', { entry });
+  // Update resident's WALK_IN_REQUEST notifications to reflect the finalized action
+  const flat = await prisma.flat.findUnique({
+    where: { id: entry.flatId },
+    include: { users: { select: { id: true } } }
+  });
+  const flatUserIds = flat?.users.map(u => u.id) || [];
+
+  if (flatUserIds.length > 0) {
+    const pendingNotifs = await prisma.notification.findMany({
+      where: { 
+        type: 'WALK_IN_REQUEST',
+        userId: { in: flatUserIds }
+      }
+    });
+    
+    const toUpdate = pendingNotifs.filter(n => n.metadata && typeof n.metadata === 'object' && n.metadata.entryId === id);
+    
+    for (const n of toUpdate) {
+      await prisma.notification.update({
+        where: { id: n.id },
+        data: {
+          type: `ENTRY_${status}`,
+          title: `Entry ${status === 'APPROVED' ? 'Approved' : 'Denied'}`,
+          body: `Entry for ${entry.visitorName} has been finalized.`,
+          isRead: false // Reset unread so residents see the conclusion
+        }
+      });
+    }
+  }
+
+  if (io) {
+    if (entry.guardId) {
+      io.to(entry.guardId).emit('entry:updated', { entry });
+      void sendPushNotification(
+        entry.guardId, 
+        `Entry ${status.toLowerCase()}`, 
+        `Visitor ${entry.visitorName} was ${status.toLowerCase()}`,
+        { entryId: entry.id, type: `ENTRY_${status}` }
+      );
+    }
+    if (entry.residentId) {
+      io.to(entry.residentId).emit('entry:updated', { entry });
+      // Don't push to resident if they just approved it (optional, but good for multi-user flats)
+      void sendPushNotification(
+        entry.residentId, 
+        `✅ Entry ${status === 'APPROVED' ? 'Approved' : 'Denied'}`, 
+        `Visitor ${entry.visitorName} was ${status.toLowerCase()}`,
+        { entryId: entry.id, type: `ENTRY_${status}` }
+      );
+    }
   }
   return entry;
 };

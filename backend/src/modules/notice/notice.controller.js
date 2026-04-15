@@ -2,7 +2,8 @@ const noticeService = require('./notice.service');
 
 const create = async (req, res) => {
   try {
-    const notice = await noticeService.createNotice(req.user, req.body);
+    const io = req.app.get('io');
+    const notice = await noticeService.createNotice(req.user, req.body, io);
     res.status(201).json({ success: true, data: notice });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

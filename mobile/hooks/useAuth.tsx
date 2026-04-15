@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (storedToken && storedUser) {
           setToken(storedToken);
-          setUser(storedUser as AuthUser);
+          setUser(storedUser as unknown as AuthUser);
         }
       } catch {
         // Corrupted storage — clear

@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Animated,
-  Platform,
   TouchableOpacity,
   Modal,
   Alert,
@@ -12,13 +11,23 @@ import {
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
+import api from '../lib/api';
 
 export default function ResidentHeader() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const pingAnim = useRef(new Animated.Value(1)).current;
   const { user, logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [flatNumber, setFlatNumber] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get('/users/me')
+      .then(res => setFlatNumber(res.data.data?.flat?.number ?? null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Animated.loop(
@@ -67,17 +76,20 @@ export default function ResidentHeader() {
           <View>
             <Text style={styles.name}>{user?.name || 'Resident'}</Text>
             <Text style={styles.unit}>
-              {user?.flatId ? `Flat • Resident` : 'Resident'}
+              {flatNumber ? `Flat ${flatNumber}` : user?.role === 'RESIDENT' ? 'Resident' : user?.role || 'Resident'}
             </Text>
           </View>
         </View>
 
         {/* Right: Notification Bell + Overflow Menu */}
         <View style={styles.rightSection}>
-          <View style={styles.bellWrapper}>
+          <TouchableOpacity 
+            style={styles.bellWrapper}
+            onPress={() => router.push('/(resident)/notices')}
+          >
             <MaterialIcons name="notifications-none" size={24} color="#9BABCE" />
             <Animated.View style={[styles.pingDot, { opacity: pingAnim }]} />
-          </View>
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setMenuVisible(true)}>
             <MaterialIcons name="more-vert" size={22} color="#6c7a8f" />
           </TouchableOpacity>
@@ -99,7 +111,10 @@ export default function ResidentHeader() {
           <View style={[styles.menuContainer, { top: insets.top + 56 }]}>
             <TouchableOpacity
               style={styles.menuItem}
-              onPress={() => setMenuVisible(false)}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push('/(resident)/profile');
+              }}
             >
               <MaterialIcons name="person-outline" size={18} color="#9BABCE" />
               <Text style={styles.menuText}>Profile</Text>
