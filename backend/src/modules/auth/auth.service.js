@@ -6,7 +6,7 @@ const { sendMail } = require('../../shared/utils/mailer');
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, role: user.role, societyId: user.societyId, flatId: user.flatId || null },
+    { id: user.id, role: user.role, societyId: user.societyId, flatId: user.flatId || null, profilePicture: user.profilePicture || null, name: user.name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -61,7 +61,7 @@ const login = async ({ email, password }) => {
     token,
     user: {
       id: user.id, name: user.name, email: user.email,
-      role: user.role, flatId: user.flatId, societyId: user.societyId
+      role: user.role, flatId: user.flatId, societyId: user.societyId, profilePicture: user.profilePicture
     }
   };
 };

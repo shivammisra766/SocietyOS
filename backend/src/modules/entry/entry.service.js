@@ -39,6 +39,7 @@ const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, 
   }
 
   if (io) {
+    io.to(`society_${societyId}`).emit('entry:new', { entry });
     flat?.users?.forEach(resident => {
       io.to(resident.id).emit('entry:new', {
         message: `${visitorName} is at the gate requesting entry`,
@@ -57,7 +58,7 @@ const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, 
   return entry;
 };
 
-const createScanEntry = async (guardUser, qrToken) => {
+const createScanEntry = async (guardUser, qrToken, io) => {
   const pass = await prisma.pass.findUnique({
     where: { qrToken },
     include: { flat: { select: { number: true } } }
@@ -90,10 +91,14 @@ const createScanEntry = async (guardUser, qrToken) => {
     }
   });
 
+  if (io) {
+    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry });
+  }
+
   return entry;
 };
 
-const createManualEntry = async (guardUser, { passId, visitorName, visitorType, flatId, notes }) => {
+const createManualEntry = async (guardUser, { passId, visitorName, visitorType, flatId, notes }, io) => {
   const data = {
     visitorName,
     visitorType: visitorType || 'HOUSEHOLD_WORKER',
@@ -115,32 +120,52 @@ const createManualEntry = async (guardUser, { passId, visitorName, visitorType, 
     }
   }
 
-  return await prisma.entryLog.create({ data });
+  const entry = await prisma.entryLog.create({ data });
+  if (io) {
+    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry });
+  }
+  return entry;
 };
 
-const logExit = async (entryId, guardUser) => {
+const logExit = async (entryId, guardUser, io) => {
   const entry = await prisma.entryLog.findUnique({ where: { id: entryId } });
   if (!entry) throw new Error('Entry not found');
   if (entry.societyId !== guardUser.societyId) throw new Error('Entry not in your society');
 
-  return await prisma.entryLog.update({
+  const updatedEntry = await prisma.entryLog.update({
     where: { id: entryId },
     data: { exitTime: new Date() }
   });
+
+  if (io) {
+    io.to(`society_${guardUser.societyId}`).emit('entry:updated', { entry: updatedEntry });
+  }
+
+  return updatedEntry;
 };
 
 const getMyEntries = async (user) => {
   if (user.role === 'RESIDENT') {
     return await prisma.entryLog.findMany({
       where: { flatId: user.flatId, societyId: user.societyId },
-      include: { flat: { select: { number: true } } },
+      include: { 
+        flat: { select: { number: true } },
+        guard: { select: { name: true } },
+        resident: { select: { name: true } },
+        pass: true
+      },
       orderBy: { entryTime: 'desc' },
       take: 50,
     });
   }
   return await prisma.entryLog.findMany({
     where: { societyId: user.societyId },
-    include: { flat: { select: { number: true } } },
+    include: { 
+      flat: { select: { number: true } },
+      guard: { select: { name: true } },
+      resident: { select: { name: true } },
+      pass: true
+    },
     orderBy: { entryTime: 'desc' },
     take: 100,
   });
@@ -151,7 +176,12 @@ const getTodayEntries = async (societyId) => {
   start.setHours(0, 0, 0, 0);
   return await prisma.entryLog.findMany({
     where: { societyId, entryTime: { gte: start } },
-    include: { flat: { select: { number: true } } },
+    include: { 
+      flat: { select: { number: true } },
+      guard: { select: { name: true } },
+      resident: { select: { name: true } },
+      pass: true
+    },
     orderBy: { entryTime: 'desc' },
   });
 };
@@ -171,7 +201,8 @@ const getFilteredEntries = async (societyId, filters = {}) => {
     include: {
       flat: { select: { number: true } },
       guard: { select: { name: true } },
-      resident: { select: { name: true } }
+      resident: { select: { name: true } },
+      pass: true
     },
     orderBy: { entryTime: 'desc' },
     take: filters.limit ? parseInt(filters.limit) : 200,
@@ -230,6 +261,7 @@ const updateEntryStatus = async (id, status, io) => {
   }
 
   if (io) {
+    io.to(`society_${entry.societyId}`).emit('entry:updated', { entry });
     if (entry.guardId) {
       io.to(entry.guardId).emit('entry:updated', { entry });
       void sendPushNotification(

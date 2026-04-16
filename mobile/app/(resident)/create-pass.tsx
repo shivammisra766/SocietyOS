@@ -110,11 +110,18 @@ export default function ResidentCreatePass() {
     setLoading(true);
     try {
       const expiry = new Date(date.getTime() + (multiEntry ? 24 : 12) * 60 * 60 * 1000);
+      const typeMap: Record<AccessType, string> = {
+        delivery: 'DELIVERY',
+        cab: 'CAB',
+        guest: 'GUEST',
+        service: 'SERVICE_PROFESSIONAL'
+      };
+
       const res = await api.post('/passes', {
         type: 'ONE_TIME',
         visitorName: guestName.trim(),
         visitorPhone: phone.trim(),
-        visitorType: selectedType.toUpperCase(),
+        visitorType: typeMap[selectedType],
         notes: notes.trim() || undefined,
         expiresAt: expiry.toISOString(),
       });
@@ -320,7 +327,12 @@ export default function ResidentCreatePass() {
       </ScrollView>
 
       {/* ── QR Modal ── */}
-      <Modal visible={showQrModal} transparent animationType="slide">
+      <Modal 
+        visible={showQrModal} 
+        transparent 
+        animationType="slide"
+        onRequestClose={() => { setShowQrModal(false); router.back(); }}
+      >
         <LinearGradient
           colors={['rgba(9,14,24,0.97)', 'rgba(14,19,34,0.99)']}
           style={styles.modalContainer}

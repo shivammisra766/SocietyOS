@@ -10,6 +10,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,24 +22,21 @@ const { width } = Dimensions.get('window');
 
 type Role = 'resident' | 'guard' | 'service';
 
-const roleConfig: Record<Role, { label: string; accent: string; headline: string; sub: string }> = {
+const roleConfig: Record<Role, { label: string; accent: string; headline: string }> = {
   resident: {
     label: 'Resident',
     accent: '#dbe5ff',
     headline: 'Welcome Home',
-    sub: 'Silent Authority Protocol — Residential',
   },
   guard: {
     label: 'Security',
-    accent: '#53fec2',
-    headline: 'ShieldGuard Auth',
-    sub: 'Silent Authority Protocol — Security Clearance II',
+    accent: '#dbe5ff',
+    headline: 'Guard Access',
   },
   service: {
     label: 'Service Staff',
-    accent: '#9babce',
-    headline: 'Staff Auth',
-    sub: 'Silent Authority Protocol — Service Clearance III',
+    accent: '#dbe5ff',
+    headline: 'Staff Access',
   },
 };
 
@@ -117,8 +115,12 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
-            <MaterialIcons name="shield" size={24} color="#53fec2" />
-            <Text style={styles.logoText}>SENTRY</Text>
+            <Image 
+              source={require('../../assets/images/icon.png')} 
+              style={{ width: 28, height: 28 }} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.logoText}>SocietyOS</Text>
           </View>
 
           {/* Role badge */}
@@ -132,7 +134,6 @@ export default function LoginScreen() {
         <View style={styles.titleBlock}>
           <Text style={styles.eyebrow}>AUTHENTICATION</Text>
           <Text style={styles.title}>{config.headline}</Text>
-          <Text style={styles.subtitle}>{config.sub}</Text>
         </View>
 
         {/* Error banner */}
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontFamily: 'Inter-Bold',
     fontSize: 18,
-    letterSpacing: 5,
+    letterSpacing: 2,
     color: '#dbe5ff',
   },
   roleBadge: {
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 10,
     letterSpacing: 3,
-    color: '#53fec2',
+    color: '#dbe5ff',
     marginBottom: 8,
   },
   title: {

@@ -2,8 +2,10 @@ const router = require('express').Router();
 const controller = require('./user.controller');
 const { authenticate } = require('../../shared/middleware/auth.middleware');
 const { authorize } = require('../../shared/middleware/rbac.middleware');
+const { upload } = require('../../shared/config/cloudinary');
 
 router.get('/me', authenticate, controller.getProfile);
+router.post('/me/profile-picture', authenticate, upload.single('image'), controller.uploadProfilePicture);
 router.patch('/me', authenticate, controller.updateProfile);
 router.post('/fcm-token', authenticate, controller.saveFcmToken);
 router.get('/contacts', authenticate, controller.getContacts);

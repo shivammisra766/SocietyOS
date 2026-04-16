@@ -25,6 +25,7 @@ export interface AuthUser {
   role: 'ADMIN' | 'RESIDENT' | 'SECURITY' | 'SERVICE';
   flatId?: string | null;
   societyId: string;
+  profilePicture?: string | null;
 }
 
 interface AuthContextValue {

@@ -78,6 +78,7 @@ export default function ResidentLayout() {
           options={{
             title: 'Vault',
             tabBarIcon: ({ color }) => <MaterialIcons name="account-balance-wallet" size={24} color={color} />,
+            href: null,
           }}
         />
         <Tabs.Screen

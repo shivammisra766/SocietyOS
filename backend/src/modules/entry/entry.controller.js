@@ -12,17 +12,20 @@ const createEntryRequest = asyncHandler(async (req, res) => {
 });
 
 const scanEntry = asyncHandler(async (req, res) => {
-  const entry = await entryService.createScanEntry(req.user, req.body.passId);
+  const io = req.app.get('io');
+  const entry = await entryService.createScanEntry(req.user, req.body.passId, io);
   res.status(201).json({ success: true, data: entry });
 });
 
 const manualEntry = asyncHandler(async (req, res) => {
-  const entry = await entryService.createManualEntry(req.user, req.body);
+  const io = req.app.get('io');
+  const entry = await entryService.createManualEntry(req.user, req.body, io);
   res.status(201).json({ success: true, data: entry });
 });
 
 const logExit = asyncHandler(async (req, res) => {
-  const entry = await entryService.logExit(req.params.id, req.user);
+  const io = req.app.get('io');
+  const entry = await entryService.logExit(req.params.id, req.user, io);
   res.json({ success: true, data: entry });
 });
 

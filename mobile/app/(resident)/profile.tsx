@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,6 +21,7 @@ interface ProfileData {
   status: string;
   flat?: { number: string; floor: number } | null;
   society?: { name: string } | null;
+  profilePicture?: string | null;
 }
 
 export default function ResidentProfile() {
@@ -34,6 +36,7 @@ export default function ResidentProfile() {
   // Editable fields
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [uploadingPic, setUploadingPic] = useState(false);
 
   const fetch = useCallback(async () => {
     try {
@@ -75,6 +78,41 @@ export default function ResidentProfile() {
     ]);
   };
 
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as const,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setUploadingPic(true);
+      
+      try {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: asset.uri,
+          name: 'profile.jpg',
+          type: 'image/jpeg',
+        } as any);
+
+        const res = await api.post('/users/me/profile-picture', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        // Optimistically update
+        setProfile(prev => prev ? { ...prev, profilePicture: res.data.profilePicture } : null);
+        Toast.show({ type: 'success', text1: 'Success', text2: 'Profile picture updated.' });
+      } catch (error) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to upload profile picture.' });
+      } finally {
+        setUploadingPic(false);
+      }
+    }
+  };
+
   const initials = (profile?.name ?? user?.name ?? 'U')
     .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -109,9 +147,20 @@ export default function ResidentProfile() {
           >
             {/* Avatar Card */}
             <View style={styles.avatarCard}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
+              <TouchableOpacity onPress={handlePickImage} disabled={uploadingPic}>
+                <View style={styles.avatarCircle}>
+                  {uploadingPic ? (
+                    <ActivityIndicator color="#090e18" />
+                  ) : profile?.profilePicture ? (
+                    <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{initials}</Text>
+                  )}
+                  <View style={styles.editBadge}>
+                    <MaterialIcons name="edit" size={12} color="#fff" />
+                  </View>
+                </View>
+              </TouchableOpacity>
               <View style={styles.avatarInfo}>
                 <Text style={styles.avatarName}>{profile?.name || '—'}</Text>
                 <View style={styles.roleBadge}>
@@ -269,6 +318,15 @@ const styles = StyleSheet.create({
     width: 64, height: 64, borderRadius: 22,
     backgroundColor: '#0d2219', alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(83,254,194,0.25)',
+  },
+  avatarImage: {
+    width: '100%', height: '100%', borderRadius: 20,
+  },
+  editBadge: {
+    position: 'absolute', bottom: -6, right: -6,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#090e18', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   avatarText: { fontFamily: 'Inter-Bold', fontSize: 22, color: '#53FEC2' },
   avatarInfo: { flex: 1, gap: 6 },

@@ -107,7 +107,7 @@ export default function RoleSelectionScreen() {
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <MaterialIcons name="shield" size={28} color="#53fec2" />
-            <Text style={styles.logoText}>SENTRY</Text>
+            <Text style={styles.logoText}>Society OS</Text>
           </View>
           <Text style={styles.tagline}>Silent Authority Protocol</Text>
         </View>

@@ -3,7 +3,7 @@ const prisma = require('../../shared/config/prisma');
 const getProfile = async (userId) => {
   return await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, phone: true, role: true, status: true, flat: true, society: true, flatId: true, societyId: true }
+    select: { id: true, name: true, email: true, phone: true, role: true, status: true, flat: true, society: true, flatId: true, societyId: true, profilePicture: true }
   });
 };
 
@@ -11,11 +11,12 @@ const updateProfile = async (userId, data) => {
   const allowed = {};
   if (data.name) allowed.name = data.name;
   if (data.phone) allowed.phone = data.phone;
+  if (data.profilePicture) allowed.profilePicture = data.profilePicture;
 
   return await prisma.user.update({
     where: { id: userId },
     data: allowed,
-    select: { id: true, name: true, email: true, phone: true, role: true }
+    select: { id: true, name: true, email: true, phone: true, role: true, profilePicture: true }
   });
 };
 

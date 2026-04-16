@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,18 +6,22 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { useAuth } from '../../hooks/useAuth';
+import api from '../../lib/api';
 
 interface SettingItem {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   subtitle?: string;
-  color?: string;
 }
 
 const securitySettings: SettingItem[] = [
@@ -32,13 +36,15 @@ const appSettings: SettingItem[] = [
   { icon: 'dark-mode', label: 'Appearance', subtitle: 'Gunmetal Dark' },
   { icon: 'language', label: 'Language', subtitle: 'English' },
   { icon: 'help-outline', label: 'Help & Support' },
-  { icon: 'info-outline', label: 'About ShieldGuard', subtitle: 'v2.4.0' },
+  { icon: 'info-outline', label: 'About SocietyOS', subtitle: 'v1.0.0' },
 ];
 
 export default function GuardSettings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logout, user } = useAuth();
+  const [profilePic, setProfilePic] = useState<string | null>(user?.profilePicture || null);
+  const [uploadingPic, setUploadingPic] = useState(false);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -46,6 +52,40 @@ export default function GuardSettings() {
       { text: 'Logout', style: 'destructive', onPress: () => logout() },
     ]);
   };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images' as const,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      const asset = result.assets[0];
+      setUploadingPic(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: asset.uri,
+          name: 'profile.jpg',
+          type: 'image/jpeg',
+        } as any);
+
+        const res = await api.post('/users/me/profile-picture', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setProfilePic(res.data.profilePicture);
+        Toast.show({ type: 'success', text1: 'Updated', text2: 'Profile picture updated.' });
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to upload picture.' });
+      } finally {
+        setUploadingPic(false);
+      }
+    }
+  };
+
+  const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'GD';
 
   return (
     <View style={styles.container}>
@@ -63,9 +103,20 @@ export default function GuardSettings() {
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>{user?.name?.split(' ').map(n => n[0]).join('') || 'GD'}</Text>
-          </View>
+          <TouchableOpacity onPress={handlePickImage} disabled={uploadingPic}>
+            <View style={styles.profileAvatar}>
+              {uploadingPic ? (
+                <ActivityIndicator color="#53FEC2" />
+              ) : profilePic ? (
+                <Image source={{ uri: profilePic }} style={styles.profileAvatarImage} />
+              ) : (
+                <Text style={styles.profileAvatarText}>{initials}</Text>
+              )}
+              <View style={styles.editBadge}>
+                <MaterialIcons name="edit" size={11} color="#fff" />
+              </View>
+            </View>
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{user?.name || 'Guard'}</Text>
             <Text style={styles.profileRole}>Security Officer</Text>
@@ -129,7 +180,7 @@ export default function GuardSettings() {
         </TouchableOpacity>
 
         {/* Footer */}
-        <Text style={styles.footer}>ShieldGuard v2.4.0</Text>
+        <Text style={styles.footer}>SocietyOS v1.0.0</Text>
         <Text style={styles.footerSub}>Secured by SocietyOS Identity Shield</Text>
 
         <View style={{ height: 40 }} />
@@ -158,6 +209,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#25293A', alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(83,254,194,0.2)',
   },
+  profileAvatarImage: { width: '100%', height: '100%', borderRadius: 18 } as any,
+  editBadge: {
+    position: 'absolute', bottom: -6, right: -6,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#090e18', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
   profileAvatarText: { fontFamily: 'Inter-Bold', fontSize: 20, color: '#53FEC2' },
   profileInfo: { flex: 1, gap: 4 },
   profileName: { fontFamily: 'Inter-Bold', fontSize: 18, color: '#DEE1F7' },
@@ -181,9 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,25,35,0.6)', borderRadius: 20,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden',
   },
-  settingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 14,
-  },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 14 },
   settingIconWrap: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.04)',

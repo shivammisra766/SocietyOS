@@ -11,6 +11,19 @@ const updateProfile = asyncHandler(async (req, res) => {
   res.json({ success: true, data: user });
 });
 
+const uploadProfilePicture = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image uploaded' });
+  }
+
+  // req.file.path contains the secure Cloudinary URL when using multer-storage-cloudinary
+  const user = await service.updateProfile(req.user.id, {
+    profilePicture: req.file.path
+  });
+
+  res.json({ success: true, data: user, profilePicture: req.file.path });
+});
+
 const updateUser = asyncHandler(async (req, res) => {
   const user = await service.updateUser(req.params.id, req.user.societyId, req.body);
   res.json({ success: true, data: user });
@@ -57,6 +70,6 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getProfile, updateProfile, updateUser, getAllUsers, getUserById,
+  getProfile, updateProfile, uploadProfilePicture, updateUser, getAllUsers, getUserById,
   getPending, approve, reject, getContacts, saveFcmToken, deleteUser
 };

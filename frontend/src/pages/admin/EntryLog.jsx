@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { io } from 'socket.io-client';
 import api from '../../api';
 
 const STATUS_CONFIG = {
@@ -31,6 +32,7 @@ export default function AdminEntries() {
   const [entries,     setEntries]     = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [exitingId,   setExitingId]   = useState(null);
+  const initialLoadDone = useRef(false);
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -52,14 +54,38 @@ export default function AdminEntries() {
       console.error('Failed to fetch entries:', err);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
   }, [statusFilter, typeFilter, dateFilter]);
 
+  /* ── initial load + polling + Socket.IO for real-time ── */
   useEffect(() => {
-    setLoading(true);
+    // Only show loading spinner on very first load, not on filter changes after init
+    if (!initialLoadDone.current) {
+      setLoading(true);
+    }
     fetchEntries();
-    const interval = setInterval(fetchEntries, 8000); // poll every 8s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchEntries, 8000); // poll every 8s as fallback
+
+    // Connect to Socket.IO for real-time updates
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
+      : 'http://localhost:5000';
+
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on('entry:new', () => {
+      fetchEntries();
+    });
+    socket.on('entry:updated', () => {
+      fetchEntries();
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, [fetchEntries]);
 
   /* ── log exit ── */
@@ -67,9 +93,12 @@ export default function AdminEntries() {
     setExitingId(entryId);
     try {
       await api.patch(`/entry/${entryId}/exit`);
+      // Update local state immediately for responsive UI
       setEntries(prev =>
-        prev.map(e => e.id === entryId ? { ...e, exitTime: new Date().toISOString() } : e)
+        prev.map(e => e.id === entryId ? { ...e, exitTime: new Date().toISOString(), status: 'EXITED' } : e)
       );
+      // Also refetch to get the authoritative server state
+      fetchEntries();
     } catch (err) {
       console.error('Failed to log exit:', err);
     } finally {

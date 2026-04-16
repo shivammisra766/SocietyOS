@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SocietyOS",
-    "slug": "mobile",
+    "slug": "societyos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#090e18",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -44,9 +44,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#090e18",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#090e18"
           }
         }
       ],
@@ -59,6 +59,13 @@
           "color": "#53FEC2",
           "defaultChannel": "default",
           "sounds": []
+        }
+      ]
+      ,
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SocietyOS needs access to your photos to set your profile picture."
         }
       ]
     ],

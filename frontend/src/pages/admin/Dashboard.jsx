@@ -264,8 +264,8 @@ export default function AdminDashboard() {
               <tbody>
                 {recentEntries.length > 0 ? (
                   recentEntries.map((entry) => {
-                    const name = entry.pass?.visitorName || entry.user?.name || 'Unknown';
-                    const type = entry.pass?.visitorType || entry.user?.role || 'Guest';
+                    const name = entry.visitorName || entry.pass?.visitorName || 'Unknown';
+                    const type = entry.visitorType || entry.pass?.visitorType || 'Guest';
                     const time = new Date(entry.entryTime || entry.createdAt).toLocaleTimeString([], {
                       hour: '2-digit', minute: '2-digit'
                     });
