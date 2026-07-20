@@ -1,0 +1,16 @@
+{
+  "name": "societyos-tour-composition",
+  "version": "1.0.0",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "durationSeconds": 25,
+  "timeline": [
+    { "scene": 1, "start": 0.0,  "end": 3.0,  "src": "assets/recordings/seq1_landing.mp4" },
+    { "scene": 2, "start": 3.0,  "end": 8.0,  "src": "assets/recordings/seq1_landing.mp4" },
+    { "scene": 3, "start": 8.0,  "end": 13.0, "src": "assets/recordings/seq3_logs.mp4" },
+    { "scene": 4, "start": 13.0, "end": 18.0, "src": "assets/recordings/seq4_complaints.mp4" },
+    { "scene": 5, "start": 18.0, "end": 23.0, "src": "assets/recordings/seq5_dashboard.mp4" },
+    { "scene": 6, "start": 23.0, "end": 25.0, "src": "outro" }
+  ]
+}

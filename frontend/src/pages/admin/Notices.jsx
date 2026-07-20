@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 import api from '../../api';
 
 export default function AdminNotices() {
@@ -10,19 +11,55 @@ export default function AdminNotices() {
   const [priority, setPriority] = useState('NORMAL');
   const [notices, setNotices] = useState([]);
   const [editNoticeId, setEditNoticeId] = useState(null);
-
-  useEffect(() => {
-    fetchNotices();
-  }, []);
+  const [stats, setStats] = useState({ delivered: 0, readRate: 86 });
 
   const fetchNotices = async () => {
     try {
       const res = await api.get('/notices');
       setNotices(res.data.data);
+      if (res.data.stats) {
+        setStats(res.data.stats);
+      }
     } catch(err) {
       console.error("Could not fetch notices", err);
     }
   }
+
+  useEffect(() => {
+    fetchNotices();
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
+      : 'http://localhost:5000';
+      
+    const socket = io(socketUrl, { auth: { token } });
+
+    const sortNotices = (list) => {
+      return [...list].sort((a, b) => {
+        const pinA = a.isPinned ? 1 : 0;
+        const pinB = b.isPinned ? 1 : 0;
+        if (pinB !== pinA) return pinB - pinA;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    };
+
+    socket.on('notice:new', (newNotice) => {
+      setNotices((prev) => sortNotices([newNotice, ...prev]));
+    });
+
+    socket.on('notice:updated', (updatedNotice) => {
+      setNotices((prev) => sortNotices(prev.map((n) => n.id === updatedNotice.id ? updatedNotice : n)));
+    });
+
+    socket.on('notice:deleted', (deletedId) => {
+      setNotices((prev) => prev.filter((n) => n.id !== deletedId));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -102,7 +139,7 @@ export default function AdminNotices() {
           <div className="glass-morphism p-6 rounded-xl flex flex-col justify-between">
             <span className="text-gray-500 text-sm font-medium uppercase tracking-widest">Delivered</span>
             <div className="flex items-end justify-between mt-4">
-              <span className="text-4xl font-bold text-emerald-500">{(notices.length * 154).toLocaleString()}</span>
+              <span className="text-4xl font-bold text-emerald-500">{stats.delivered.toLocaleString()}</span>
               <span className="text-emerald-500 text-sm flex items-center gap-1 font-bold">
                 Users Reached
               </span>
@@ -111,7 +148,7 @@ export default function AdminNotices() {
           <div className="glass-morphism p-6 rounded-xl flex flex-col justify-between">
             <span className="text-gray-500 text-sm font-medium uppercase tracking-widest">Read Rate</span>
             <div className="flex items-end justify-between mt-4">
-              <span className="text-4xl font-bold text-blue-400">86%</span>
+              <span className="text-4xl font-bold text-blue-400">{stats.readRate}%</span>
               <span className="text-blue-400 text-sm flex items-center gap-1">
                 Engagement
               </span>

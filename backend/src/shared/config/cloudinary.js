@@ -1,28 +1,39 @@
-const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const path = require('path');
+const fs = require('fs');
 
-// Support both CLOUDINARY_URL and individual env vars
-if (process.env.CLOUDINARY_URL) {
-  // CLOUDINARY_URL format: cloudinary://api_key:api_secret@cloud_name
-  cloudinary.config({ cloudinary_url: process.env.CLOUDINARY_URL });
-} else {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
+const uploadDir = path.join(__dirname, '../../../../public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'societyos/profiles',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
   },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
 });
 
-const upload = multer({ storage });
+const uploadMiddleware = multer({ storage });
+
+// Wrapper to modify req.file.path to be a URL path
+const upload = {
+  single: (fieldName) => {
+    return (req, res, next) => {
+      uploadMiddleware.single(fieldName)(req, res, (err) => {
+        if (err) return next(err);
+        if (req.file) {
+          req.file.path = '/uploads/' + req.file.filename;
+        }
+        next();
+      });
+    };
+  }
+};
+
+const cloudinary = {}; // Mock
 
 module.exports = { cloudinary, upload };

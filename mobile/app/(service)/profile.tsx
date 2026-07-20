@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '../../hooks/useAuth';
-import api from '../../lib/api';
+import api, { getImageUrl } from '../../lib/api';
 
 interface MenuItem {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -124,7 +124,7 @@ export default function ServiceProfile() {
               {uploadingPic ? (
                 <ActivityIndicator color="#53FEC2" />
               ) : profilePic ? (
-                <Image source={{ uri: profilePic }} style={styles.avatarImage} />
+                <Image source={{ uri: getImageUrl(profilePic) }} style={styles.avatarImage} />
               ) : (
                 <Text style={styles.avatarText}>{initials}</Text>
               )}

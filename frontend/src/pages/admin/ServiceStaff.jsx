@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import api from '../../api';
+import api, { getImageUrl } from '../../api';
 
 export default function AdminServiceStaff() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -10,10 +10,6 @@ export default function AdminServiceStaff() {
   const [staffList, setStaffList] = useState([]);
   const [editStaffId, setEditStaffId] = useState(null);
 
-  useEffect(() => {
-    fetchStaff();
-  }, []);
-
   const fetchStaff = async () => {
     try {
       const res = await api.get('/users?role=SERVICE');
@@ -22,6 +18,10 @@ export default function AdminServiceStaff() {
       console.error("Failed to fetch service staff", err);
     }
   };
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -140,7 +140,13 @@ export default function AdminServiceStaff() {
                 <tr key={staff.id} className="hover:bg-white/[0.04] transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-xs font-black text-slate-300 shadow-inner transition-colors">{initials.toUpperCase()}</div>
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center overflow-hidden text-xs font-black text-slate-300 shadow-inner transition-colors">
+                        {staff.profilePicture ? (
+                          <img src={getImageUrl(staff.profilePicture)} alt={staff.name} className="w-full h-full object-cover" />
+                        ) : (
+                          initials.toUpperCase()
+                        )}
+                      </div>
                       <div>
                         <p className="font-bold text-white">{staff.name}</p>
                         <p className="text-[11px] font-bold tracking-wide text-gray-500 mt-0.5">ID: UID-{staff.id.substring(0, 4)}</p>

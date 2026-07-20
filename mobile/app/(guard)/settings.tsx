@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '../../hooks/useAuth';
-import api from '../../lib/api';
+import api, { getImageUrl } from '../../lib/api';
 
 interface SettingItem {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -108,7 +108,7 @@ export default function GuardSettings() {
               {uploadingPic ? (
                 <ActivityIndicator color="#53FEC2" />
               ) : profilePic ? (
-                <Image source={{ uri: profilePic }} style={styles.profileAvatarImage} />
+                <Image source={{ uri: getImageUrl(profilePic) }} style={styles.profileAvatarImage} />
               ) : (
                 <Text style={styles.profileAvatarText}>{initials}</Text>
               )}

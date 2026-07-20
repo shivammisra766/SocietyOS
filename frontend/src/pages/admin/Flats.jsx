@@ -9,10 +9,6 @@ export default function AdminFlats() {
   const [flats, setFlats] = useState([]);
   const [editFlatId, setEditFlatId] = useState(null);
 
-  useEffect(() => {
-    fetchFlats();
-  }, []);
-
   const fetchFlats = async () => {
     try {
       const res = await api.get('/flats');
@@ -21,6 +17,11 @@ export default function AdminFlats() {
       console.error("Failed to fetch flats", err);
     }
   };
+
+  useEffect(() => {
+    fetchFlats();
+  }, []);
+
 
   const handleSave = async (e) => {
     e.preventDefault();

@@ -3,16 +3,18 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import api from '../api';
+import api, { getImageUrl } from '../api';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const [profilePic, setProfilePic] = useState(user?.profilePicture || null);
+  
+
+  const [profilePic, setProfilePic] = useState(getImageUrl(user?.profilePicture) || null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (user?.profilePicture) setProfilePic(user.profilePicture);
+    if (user?.profilePicture) setProfilePic(getImageUrl(user.profilePicture));
   }, [user?.profilePicture]);
 
   const handleImageUpload = async (e) => {
@@ -33,7 +35,7 @@ export default function AdminLayout() {
       const res = await api.post('/users/me/profile-picture', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setProfilePic(res.data.profilePicture);
+      setProfilePic(getImageUrl(res.data.profilePicture));
       toast.success("Profile picture updated!", { id: uploadingToast });
     } catch (err) {
       console.error(err);

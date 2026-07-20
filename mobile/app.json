@@ -16,6 +16,7 @@
       }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#090e18",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,7 +30,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.USE_FULL_SCREEN_INTENT",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -60,8 +62,7 @@
           "defaultChannel": "default",
           "sounds": []
         }
-      ]
-      ,
+      ],
       [
         "expo-image-picker",
         {
@@ -72,6 +73,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "61cf6a26-832c-49cc-a63e-4c9098b81875"
+      }
     }
   }
 }

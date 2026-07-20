@@ -10,7 +10,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
-import api from '../../lib/api';
+import api, { getImageUrl } from '../../lib/api';
 
 interface ProfileData {
   id: string;
@@ -152,7 +152,7 @@ export default function ResidentProfile() {
                   {uploadingPic ? (
                     <ActivityIndicator color="#090e18" />
                   ) : profile?.profilePicture ? (
-                    <Image source={{ uri: profile.profilePicture }} style={styles.avatarImage} />
+                    <Image source={{ uri: getImageUrl(profile.profilePicture) }} style={styles.avatarImage} />
                   ) : (
                     <Text style={styles.avatarText}>{initials}</Text>
                   )}

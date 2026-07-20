@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../hooks/useAuth';
+import { getItem, setItem } from '../../lib/storage';
+import { BASE_URL } from '../../lib/api';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +48,28 @@ export default function LoginScreen() {
   const { role } = useLocalSearchParams<{ role: Role }>();
   const config = roleConfig[role ?? 'resident'];
   const { login } = useAuth();
+
+  const [customUrl, setCustomUrl] = useState('');
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [tempUrl, setTempUrl] = useState('');
+
+  useEffect(() => {
+    getItem('societyos-custom-api-url').then((url) => {
+      setCustomUrl(url || BASE_URL);
+    });
+  }, []);
+
+  const saveCustomUrl = async (url: string) => {
+    const trimmed = url.trim();
+    if (trimmed) {
+      await setItem('societyos-custom-api-url', trimmed);
+      setCustomUrl(trimmed);
+    } else {
+      await setItem('societyos-custom-api-url', '');
+      setCustomUrl(BASE_URL);
+    }
+    setShowUrlModal(false);
+  };
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,14 +139,22 @@ export default function LoginScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoRow}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onLongPress={() => {
+              setTempUrl(customUrl);
+              setShowUrlModal(true);
+            }}
+            style={styles.logoRow}
+          >
             <Image 
               source={require('../../assets/images/icon.png')} 
               style={{ width: 28, height: 28 }} 
               resizeMode="contain" 
             />
             <Text style={styles.logoText}>SocietyOS</Text>
-          </View>
+            <MaterialIcons name="settings" size={12} color="#4a5568" style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
 
           {/* Role badge */}
           <View style={[styles.roleBadge, { borderColor: config.accent + '30' }]}>
@@ -252,6 +285,60 @@ export default function LoginScreen() {
         {/* Footer */}
         <Text style={styles.footer}>Secure • Encrypted • Private</Text>
       </ScrollView>
+
+      <Modal
+        visible={showUrlModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUrlModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>API Connection Settings</Text>
+            <Text style={styles.modalDescription}>
+              Configure your backend server URL. You can open this settings screen by tapping/long-pressing the SocietyOS logo on the login page.
+            </Text>
+
+            <View style={styles.urlInputWrapper}>
+              <TextInput
+                style={styles.urlInput}
+                placeholder="http://192.168.1.4:5000"
+                placeholderTextColor="#6c7a8f"
+                value={tempUrl}
+                onChangeText={setTempUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowUrlModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={() => saveCustomUrl(tempUrl)}
+              >
+                <Text style={styles.saveButtonText}>Save URL</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => {
+                setTempUrl('');
+                saveCustomUrl('');
+              }}
+            >
+              <Text style={styles.resetButtonText}>Reset to Default</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -463,5 +550,85 @@ const styles = StyleSheet.create({
     color: '#2a3445',
     textAlign: 'center',
     letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#0d1220',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    gap: 16,
+  },
+  modalTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: '#dbe5ff',
+  },
+  modalDescription: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#6c7a8f',
+    lineHeight: 18,
+  },
+  urlInputWrapper: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    height: 48,
+    justifyContent: 'center',
+  },
+  urlInput: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#dbe5ff',
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  cancelButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#6c7a8f',
+  },
+  saveButton: {
+    backgroundColor: '#1e3a5f',
+  },
+  saveButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#dbe5ff',
+  },
+  resetButton: {
+    alignSelf: 'center',
+    marginTop: 4,
+  },
+  resetButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: '#EE7D77',
+    textDecorationLine: 'underline',
   },
 });

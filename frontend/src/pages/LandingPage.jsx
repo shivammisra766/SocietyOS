@@ -268,7 +268,7 @@ export default function LandingPage() {
               title: 'Entry logged automatically',
               desc: 'Every entry is timestamped and stored. Admins see everything. Residents see history.',
             },
-          ].map((step, idx) => (
+          ].map((step) => (
             <div
               key={step.num}
               className="reveal flex-1 text-center md:text-left relative"

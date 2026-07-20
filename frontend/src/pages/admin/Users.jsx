@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
-import api from '../../api';
+import api, { getImageUrl } from '../../api';
 
 export default function AdminUsers() {
-  const { user } = useAuth();
   const [residents, setResidents]     = useState([]);
+  
 
   const fetchResidents = () => {
     api.get('/users?role=RESIDENT')
@@ -116,8 +115,12 @@ export default function AdminUsers() {
                     <tr key={resident.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-xs text-white font-bold">
-                            {initials.toUpperCase()}
+                          <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center overflow-hidden text-xs text-white font-bold">
+                            {resident.profilePicture ? (
+                              <img src={getImageUrl(resident.profilePicture)} alt={resident.name} className="w-full h-full object-cover" />
+                            ) : (
+                              initials.toUpperCase()
+                            )}
                           </div>
                           <div>
                             <p className="font-bold text-white text-sm">{resident.name}</p>

@@ -32,8 +32,8 @@ function resolveBaseUrl(): string {
     return `http://${ip}:5000`;
   }
 
-  // Fallback: Android emulator alias / localhost for iOS sim
-  return Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
+  // Fallback: Android local Wi-Fi IP (192.168.1.4) / localhost for iOS sim
+  return Platform.OS === 'android' ? 'http://192.168.1.4:5000' : 'http://localhost:5000';
 }
 
 const BASE_URL = resolveBaseUrl();
@@ -49,10 +49,21 @@ const api = axios.create({
   },
 });
 
-// Request interceptor — attach token
+let activeBaseUrl = BASE_URL;
+
+// Request interceptor — attach token & dynamically set baseURL
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
+      // Load custom server URL if configured
+      const customUrl = await getItem('societyos-custom-api-url');
+      if (customUrl) {
+        config.baseURL = `${customUrl}/api`;
+        activeBaseUrl = customUrl;
+      } else {
+        activeBaseUrl = BASE_URL;
+      }
+
       const token = await getItem(TOKEN_KEY);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -64,6 +75,12 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+export function getImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${activeBaseUrl}${path}`;
+}
 
 // Response interceptor — handle 401
 let onUnauthorized: (() => void) | null = null;

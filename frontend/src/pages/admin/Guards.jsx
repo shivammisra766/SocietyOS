@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import api from '../../api';
-import { useAuth } from '../../context/AuthContext';
-
+import api, { getImageUrl } from '../../api';
 export default function AdminGuards() {
-  const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [guardName, setGuardName] = useState('');
   const [guardEmail, setGuardEmail] = useState('');
   const [guardPhone, setGuardPhone] = useState('');
   const [guards, setGuards] = useState([]);
   const [editGuardId, setEditGuardId] = useState(null);
-
-  useEffect(() => {
-    fetchGuards();
-  }, []);
 
   const fetchGuards = async () => {
     try {
@@ -24,6 +17,11 @@ export default function AdminGuards() {
       console.error("Failed to fetch guards", err);
     }
   };
+
+  useEffect(() => {
+    fetchGuards();
+  }, []);
+
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -163,7 +161,13 @@ export default function AdminGuards() {
                 <tr key={guard.id} className="hover:bg-white/[0.04] transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-xs font-black text-slate-300 shadow-inner transition-colors">{initials.toUpperCase()}</div>
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center overflow-hidden text-xs font-black text-slate-300 shadow-inner transition-colors">
+                        {guard.profilePicture ? (
+                          <img src={getImageUrl(guard.profilePicture)} alt={guard.name} className="w-full h-full object-cover" />
+                        ) : (
+                          initials.toUpperCase()
+                        )}
+                      </div>
                       <div>
                         <p className="font-bold text-white">{guard.name}</p>
                         <p className="text-[11px] font-bold tracking-wide text-gray-500 mt-0.5">ID: UID-{guard.id.substring(0, 4)}</p>

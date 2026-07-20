@@ -133,4 +133,4 @@ npx expo start -c
 This project is licensed under the **ISC License**.
 
 ---
-<p align="center">Built with ❤️ by <a href="https://github.com/shivammisra766">Shivam Misra</a></p>
+<p align="center">Built by <a href="https://github.com/shivammisra766">Shivam Misra</a></p>

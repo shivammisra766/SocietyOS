@@ -127,7 +127,7 @@ export default function AdminComplaints() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-bold text-white text-sm">{complaint.title || complaint.description?.substring(0, 50)}</span>
-                          <span className="text-[10px] text-gray-500 font-mono">TKT-{complaint.id.substring(0, 4).toUpperCase()}</span>
+                          <span className="text-[10px] text-gray-500 font-mono">TKT-{complaint.id.toString().substring(0, 4).toUpperCase()}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">

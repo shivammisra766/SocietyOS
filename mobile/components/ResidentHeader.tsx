@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
-import api from '../lib/api';
+import api, { getImageUrl } from '../lib/api';
 
 export default function ResidentHeader() {
   const insets = useSafeAreaInsets();
@@ -71,7 +72,11 @@ export default function ResidentHeader() {
         {/* Left: Avatar + Name */}
         <View style={styles.leftSection}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {user?.profilePicture ? (
+              <Image source={{ uri: getImageUrl(user.profilePicture) || undefined }} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
           <View>
             <Text style={styles.name}>{user?.name || 'Resident'}</Text>
@@ -172,6 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
   },
   avatarText: {
     fontFamily: 'Inter-SemiBold',

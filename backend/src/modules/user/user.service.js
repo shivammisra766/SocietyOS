@@ -45,7 +45,7 @@ const getAllUsers = async (societyId, filters = {}) => {
     where,
     select: {
       id: true, name: true, email: true, phone: true,
-      role: true, status: true, createdAt: true,
+      role: true, status: true, createdAt: true, profilePicture: true,
       flat: { select: { number: true, floor: true } }
     },
     orderBy: { createdAt: 'desc' }
@@ -57,7 +57,7 @@ const getUserById = async (societyId, userId) => {
     where: { id: userId },
     select: {
       id: true, name: true, email: true, phone: true,
-      role: true, status: true, createdAt: true,
+      role: true, status: true, createdAt: true, profilePicture: true,
       flat: { select: { id: true, number: true, floor: true } },
       society: { select: { id: true, name: true } }
     }
@@ -69,7 +69,7 @@ const getUserById = async (societyId, userId) => {
 const getPendingUsers = async (societyId) => {
   return await prisma.user.findMany({
     where: { societyId, status: 'PENDING' },
-    select: { id: true, name: true, email: true, role: true, createdAt: true, flat: { select: { number: true } } }
+    select: { id: true, name: true, email: true, role: true, createdAt: true, profilePicture: true, flat: { select: { number: true } } }
   });
 };
 

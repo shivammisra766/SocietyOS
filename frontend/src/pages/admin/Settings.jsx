@@ -72,8 +72,6 @@ export default function AdminSettings() {
     SERVICE:  { icon: 'engineering', color: 'amber', desc: 'Can view assigned tasks, update work status, and log hours.' },
   };
 
-  const selectedConfig = role ? roleConfig[role] : null;
-
   return (
     <div className="pt-8 px-8 pb-12 min-h-[calc(100vh-80px)] flex flex-col">
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
