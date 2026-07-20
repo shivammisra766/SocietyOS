@@ -43,7 +43,7 @@ const roles: RoleCard[] = [
     subtitle: 'ShieldGuard Protocol',
     clearance: 'Clearance II',
     icon: 'shield',
-    accentColor: '#53fec2',
+    accentColor: '#bacff8',
     description: 'Gate control, scanning & alerts',
   },
   {
@@ -106,7 +106,7 @@ export default function RoleSelectionScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
-            <MaterialIcons name="shield" size={28} color="#53fec2" />
+            <MaterialIcons name="shield" size={28} color="#bacff8" />
             <Text style={styles.logoText}>Society OS</Text>
           </View>
           <Text style={styles.tagline}>Silent Authority Protocol</Text>
