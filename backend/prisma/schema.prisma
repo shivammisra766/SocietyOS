@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model Society {
@@ -17,7 +16,6 @@ model Society {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   complaints Complaint[]
-  entryLogs  EntryLog[]
   flats      Flat[]
   notices    Notice[]
   passes     Pass[]
@@ -30,7 +28,6 @@ model Flat {
   floor      Int
   societyId  String
   complaints Complaint[]
-  entryLogs  EntryLog[]
   society    Society     @relation(fields: [societyId], references: [id])
   passes     Pass[]
   users      User[]
@@ -54,8 +51,6 @@ model User {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   complaints      Complaint[]
-  guardEntries    EntryLog[]     @relation("GuardEntries")
-  residentEntries EntryLog[]     @relation("ResidentEntries")
   notices         Notice[]
   notifications   Notification[]
   passes          Pass[]
@@ -88,7 +83,6 @@ model Pass {
   societyId    String
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  entries      EntryLog[]
   flat         Flat        @relation(fields: [flatId], references: [id])
   resident     User        @relation(fields: [residentId], references: [id])
   society      Society     @relation(fields: [societyId], references: [id])
@@ -99,33 +93,6 @@ model Pass {
   @@index([status])
 }
 
-model EntryLog {
-  id           String      @id @default(uuid())
-  visitorName  String
-  visitorPhone String?
-  visitorType  VisitorType
-  method       EntryMethod
-  status       EntryStatus
-  notes        String?
-  visitorIdUrl String?
-  passId       String?
-  guardId      String
-  residentId   String?
-  flatId       String
-  societyId    String
-  entryTime    DateTime    @default(now())
-  exitTime     DateTime?
-  flat         Flat        @relation(fields: [flatId], references: [id])
-  guard        User        @relation("GuardEntries", fields: [guardId], references: [id])
-  pass         Pass?       @relation(fields: [passId], references: [id])
-  resident     User?       @relation("ResidentEntries", fields: [residentId], references: [id])
-  society      Society     @relation(fields: [societyId], references: [id])
-
-  @@index([societyId, entryTime])
-  @@index([flatId])
-  @@index([guardId])
-  @@index([passId])
-}
 
 model Notice {
   id        String         @id @default(uuid())

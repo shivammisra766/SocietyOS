@@ -46,3 +46,12 @@ Thumbs.db
 .system_generated/
 .gemini/
 .antigravity/
+
+# Temporary, scratch, and media files
+scratch/
+*/scratch/
+*.mp4
+graphify-out/
+screenshot/
+image.png
+.agents/
