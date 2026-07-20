@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const userRoutes = require('./modules/user/user.routes');
@@ -17,12 +18,17 @@ const { errorHandler } = require('./shared/middleware/error.middleware');
 const app = express();
 
 // Security
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+
+// Serve local uploads
+app.use('/uploads', express.static(path.join(__dirname, '../../public/uploads')));
 
 // Rate limiting on auth routes
 const authLimiter = rateLimit({
@@ -46,6 +52,7 @@ app.use('/api/flats', flatRoutes);
 const { authenticate } = require('./shared/middleware/auth.middleware');
 const { authorize } = require('./shared/middleware/rbac.middleware');
 const prisma = require('./shared/config/prisma');
+const EntryLog = require('./modules/entry/entry.model');
 const asyncHandler = require('./shared/utils/asyncHandler');
 
 app.get('/api/dashboard/stats', authenticate, authorize('ADMIN'), asyncHandler(async (req, res) => {
@@ -57,7 +64,7 @@ app.get('/api/dashboard/stats', authenticate, authorize('ADMIN'), asyncHandler(a
     prisma.user.count({ where: { societyId, role: 'RESIDENT', status: 'APPROVED' } }),
     prisma.user.count({ where: { societyId, role: 'SECURITY', status: 'APPROVED' } }),
     prisma.pass.count({ where: { societyId, status: 'ACTIVE' } }),
-    prisma.entryLog.count({ where: { societyId, entryTime: { gte: today } } }),
+    EntryLog.countDocuments({ societyId, entryTime: { $gte: today } }),
     prisma.complaint.count({ where: { societyId, status: 'OPEN' } }),
     prisma.user.count({ where: { societyId, status: 'PENDING' } }),
   ]);
@@ -85,8 +92,8 @@ app.get('/api/dashboard/charts', authenticate, authorize('ADMIN'), asyncHandler(
     days.map(async (dayStart) => {
       const dayEnd = new Date(dayStart);
       dayEnd.setDate(dayEnd.getDate() + 1);
-      const count = await prisma.entryLog.count({
-        where: { societyId, entryTime: { gte: dayStart, lt: dayEnd } }
+      const count = await EntryLog.countDocuments({
+        societyId, entryTime: { $gte: dayStart, $lt: dayEnd }
       });
       return {
         day: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),

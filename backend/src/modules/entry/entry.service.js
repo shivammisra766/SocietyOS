@@ -1,5 +1,39 @@
 const prisma = require('../../shared/config/prisma');
+const EntryLog = require('./entry.model');
 const { sendPushNotification } = require('../../shared/config/pushNotification');
+
+/**
+ * Batch-resolve flat/guard/resident names from Postgres for Mongo entry docs.
+ * Returns plain objects with the same shape the frontend expects.
+ */
+async function hydrateEntries(entries) {
+  const docs = Array.isArray(entries) ? entries : [entries];
+  if (docs.length === 0) return [];
+
+  const flatIds = [...new Set(docs.map(e => e.flatId).filter(Boolean))];
+  const guardIds = [...new Set(docs.map(e => e.guardId).filter(Boolean))];
+  const residentIds = [...new Set(docs.map(e => e.residentId).filter(Boolean))];
+
+  const [flats, guards, residents] = await Promise.all([
+    flatIds.length ? prisma.flat.findMany({ where: { id: { in: flatIds } }, select: { id: true, number: true } }) : [],
+    guardIds.length ? prisma.user.findMany({ where: { id: { in: guardIds } }, select: { id: true, name: true } }) : [],
+    residentIds.length ? prisma.user.findMany({ where: { id: { in: residentIds } }, select: { id: true, name: true } }) : [],
+  ]);
+
+  const flatMap = Object.fromEntries(flats.map(f => [f.id, f]));
+  const guardMap = Object.fromEntries(guards.map(g => [g.id, g]));
+  const residentMap = Object.fromEntries(residents.map(r => [r.id, r]));
+
+  return docs.map(e => {
+    const obj = e.toJSON ? e.toJSON() : { ...e };
+    obj.id = obj._id;
+    obj.flat = flatMap[e.flatId] ? { number: flatMap[e.flatId].number } : null;
+    obj.guard = guardMap[e.guardId] ? { name: guardMap[e.guardId].name } : null;
+    obj.resident = residentMap[e.residentId] ? { name: residentMap[e.residentId].name } : null;
+    obj.pass = null;
+    return obj;
+  });
+}
 
 const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, visitorType, flatId, societyId }, io) => {
   // Find resident(s) for this flat
@@ -9,21 +43,21 @@ const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, 
   });
   if (!flat) throw new Error('Flat not found');
 
-  const entry = await prisma.entryLog.create({
-    data: {
-      visitorName,
-      visitorPhone,
-      visitorType: visitorType || 'GUEST',
-      method: 'LIVE_APPROVAL',
-      status: 'PENDING',
-      notes: purpose,
-      guardId: userId,
-      residentId: flat.users[0]?.id || null,
-      flatId,
-      societyId,
-    },
-    include: { flat: { select: { number: true } } }
-  });
+  const entry = await new EntryLog({
+    visitorName,
+    visitorPhone,
+    visitorType: visitorType || 'GUEST',
+    method: 'LIVE_APPROVAL',
+    status: 'PENDING',
+    notes: purpose,
+    guardId: userId,
+    residentId: flat.users[0]?.id || null,
+    flatId,
+    societyId,
+  }).save();
+
+  // Hydrate for response
+  const [hydrated] = await hydrateEntries(entry);
 
   // Create notifications for flat residents
   for (const resident of (flat?.users || [])) {
@@ -33,29 +67,29 @@ const createEntryRequest = async ({ visitorName, visitorPhone, purpose, userId, 
         type: 'WALK_IN_REQUEST',
         title: 'Entry Request',
         body: `${visitorName} is at the gate requesting entry to your flat`,
-        metadata: { entryId: entry.id }
+        metadata: { entryId: hydrated.id }
       }
     });
   }
 
   if (io) {
-    io.to(`society_${societyId}`).emit('entry:new', { entry });
+    io.to(`society_${societyId}`).emit('entry:new', { entry: hydrated });
     flat?.users?.forEach(resident => {
       io.to(resident.id).emit('entry:new', {
         message: `${visitorName} is at the gate requesting entry`,
-        entry
+        entry: hydrated
       });
       // Send real push notification for background delivery
       void sendPushNotification(
         resident.id, 
         '🏠 Visitor at Gate', 
         `${visitorName} is at the gate requesting entry to your flat`,
-        { entryId: entry.id, type: 'WALK_IN_REQUEST', visitorName }
+        { entryId: hydrated.id, type: 'WALK_IN_REQUEST', visitorName }
       );
     });
   }
 
-  return entry;
+  return hydrated;
 };
 
 const createScanEntry = async (guardUser, qrToken, io) => {
@@ -76,26 +110,26 @@ const createScanEntry = async (guardUser, qrToken, io) => {
     await prisma.pass.update({ where: { id: pass.id }, data: { status: 'USED' } });
   }
 
-  const entry = await prisma.entryLog.create({
-    data: {
-      visitorName: pass.visitorName,
-      visitorPhone: pass.visitorPhone,
-      visitorType: pass.visitorType,
-      method: 'QR_SCAN',
-      status: 'SCANNED',
-      guardId: guardUser.id,
-      residentId: pass.residentId,
-      passId: pass.id,
-      flatId: pass.flatId,
-      societyId: guardUser.societyId,
-    }
-  });
+  const entry = await new EntryLog({
+    visitorName: pass.visitorName,
+    visitorPhone: pass.visitorPhone,
+    visitorType: pass.visitorType,
+    method: 'QR_SCAN',
+    status: 'SCANNED',
+    guardId: guardUser.id,
+    residentId: pass.residentId,
+    passId: pass.id,
+    flatId: pass.flatId,
+    societyId: guardUser.societyId,
+  }).save();
+
+  const [hydrated] = await hydrateEntries(entry);
 
   if (io) {
-    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry });
+    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry: hydrated });
   }
 
-  return entry;
+  return hydrated;
 };
 
 const createManualEntry = async (guardUser, { passId, visitorName, visitorType, flatId, notes }, io) => {
@@ -120,101 +154,78 @@ const createManualEntry = async (guardUser, { passId, visitorName, visitorType, 
     }
   }
 
-  const entry = await prisma.entryLog.create({ data });
+  const entry = await new EntryLog(data).save();
+  const [hydrated] = await hydrateEntries(entry);
+
   if (io) {
-    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry });
+    io.to(`society_${guardUser.societyId}`).emit('entry:new', { entry: hydrated });
   }
-  return entry;
+  return hydrated;
 };
 
 const logExit = async (entryId, guardUser, io) => {
-  const entry = await prisma.entryLog.findUnique({ where: { id: entryId } });
+  const entry = await EntryLog.findById(entryId);
   if (!entry) throw new Error('Entry not found');
   if (entry.societyId !== guardUser.societyId) throw new Error('Entry not in your society');
 
-  const updatedEntry = await prisma.entryLog.update({
-    where: { id: entryId },
-    data: { exitTime: new Date() }
-  });
+  entry.exitTime = new Date();
+  await entry.save();
+
+  const [hydrated] = await hydrateEntries(entry);
 
   if (io) {
-    io.to(`society_${guardUser.societyId}`).emit('entry:updated', { entry: updatedEntry });
+    io.to(`society_${guardUser.societyId}`).emit('entry:updated', { entry: hydrated });
   }
 
-  return updatedEntry;
+  return hydrated;
 };
 
 const getMyEntries = async (user) => {
+  const filter = { societyId: user.societyId };
+  const limit = 100;
+
   if (user.role === 'RESIDENT') {
-    return await prisma.entryLog.findMany({
-      where: { flatId: user.flatId, societyId: user.societyId },
-      include: { 
-        flat: { select: { number: true } },
-        guard: { select: { name: true } },
-        resident: { select: { name: true } },
-        pass: true
-      },
-      orderBy: { entryTime: 'desc' },
-      take: 50,
-    });
+    filter.flatId = user.flatId;
+    const docs = await EntryLog.find(filter).sort({ entryTime: -1 }).limit(50).lean();
+    return hydrateEntries(docs);
   }
-  return await prisma.entryLog.findMany({
-    where: { societyId: user.societyId },
-    include: { 
-      flat: { select: { number: true } },
-      guard: { select: { name: true } },
-      resident: { select: { name: true } },
-      pass: true
-    },
-    orderBy: { entryTime: 'desc' },
-    take: 100,
-  });
+
+  const docs = await EntryLog.find(filter).sort({ entryTime: -1 }).limit(limit).lean();
+  return hydrateEntries(docs);
 };
 
 const getTodayEntries = async (societyId) => {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  return await prisma.entryLog.findMany({
-    where: { societyId, entryTime: { gte: start } },
-    include: { 
-      flat: { select: { number: true } },
-      guard: { select: { name: true } },
-      resident: { select: { name: true } },
-      pass: true
-    },
-    orderBy: { entryTime: 'desc' },
-  });
+  const docs = await EntryLog.find({
+    societyId,
+    entryTime: { $gte: start },
+  }).sort({ entryTime: -1 }).lean();
+  return hydrateEntries(docs);
 };
 
 const getFilteredEntries = async (societyId, filters = {}) => {
   const where = { societyId };
 
-  if (filters.dateFrom) where.entryTime = { ...(where.entryTime || {}), gte: new Date(filters.dateFrom) };
-  if (filters.dateTo) where.entryTime = { ...(where.entryTime || {}), lte: new Date(filters.dateTo) };
+  if (filters.dateFrom) where.entryTime = { ...(where.entryTime || {}), $gte: new Date(filters.dateFrom) };
+  if (filters.dateTo) where.entryTime = { ...(where.entryTime || {}), $lte: new Date(filters.dateTo) };
   if (filters.visitorType) where.visitorType = filters.visitorType;
   if (filters.method) where.method = filters.method;
   if (filters.status) where.status = filters.status;
   if (filters.flatId) where.flatId = filters.flatId;
 
-  return await prisma.entryLog.findMany({
-    where,
-    include: {
-      flat: { select: { number: true } },
-      guard: { select: { name: true } },
-      resident: { select: { name: true } },
-      pass: true
-    },
-    orderBy: { entryTime: 'desc' },
-    take: filters.limit ? parseInt(filters.limit) : 200,
-  });
+  const docs = await EntryLog.find(where)
+    .sort({ entryTime: -1 })
+    .limit(filters.limit ? parseInt(filters.limit) : 200)
+    .lean();
+  return hydrateEntries(docs);
 };
 
 const updateEntryStatus = async (id, status, io) => {
-  const entry = await prisma.entryLog.update({
-    where: { id },
-    data: { status },
-    include: { flat: { select: { number: true } } }
-  });
+  const entry = await EntryLog.findByIdAndUpdate(id, { status }, { new: true });
+  if (!entry) throw new Error('Entry not found');
+
+  const [hydrated] = await hydrateEntries(entry);
 
   // Create notification for guard
   if (entry.guardId) {
@@ -225,7 +236,7 @@ const updateEntryStatus = async (id, status, io) => {
         type: `ENTRY_${status}`,
         title: `Entry ${statusText}`,
         body: `Entry for ${entry.visitorName} has been ${statusText}`,
-        metadata: { entryId: entry.id }
+        metadata: { entryId: entry._id }
       }
     });
   }
@@ -261,28 +272,28 @@ const updateEntryStatus = async (id, status, io) => {
   }
 
   if (io) {
-    io.to(`society_${entry.societyId}`).emit('entry:updated', { entry });
+    io.to(`society_${entry.societyId}`).emit('entry:updated', { entry: hydrated });
     if (entry.guardId) {
-      io.to(entry.guardId).emit('entry:updated', { entry });
+      io.to(entry.guardId).emit('entry:updated', { entry: hydrated });
       void sendPushNotification(
         entry.guardId, 
         `Entry ${status.toLowerCase()}`, 
         `Visitor ${entry.visitorName} was ${status.toLowerCase()}`,
-        { entryId: entry.id, type: `ENTRY_${status}` }
+        { entryId: entry._id, type: `ENTRY_${status}` }
       );
     }
     if (entry.residentId) {
-      io.to(entry.residentId).emit('entry:updated', { entry });
+      io.to(entry.residentId).emit('entry:updated', { entry: hydrated });
       // Don't push to resident if they just approved it (optional, but good for multi-user flats)
       void sendPushNotification(
         entry.residentId, 
         `✅ Entry ${status === 'APPROVED' ? 'Approved' : 'Denied'}`, 
         `Visitor ${entry.visitorName} was ${status.toLowerCase()}`,
-        { entryId: entry.id, type: `ENTRY_${status}` }
+        { entryId: entry._id, type: `ENTRY_${status}` }
       );
     }
   }
-  return entry;
+  return hydrated;
 };
 
 module.exports = {

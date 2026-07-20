@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const app = require('./src/app');
 const prisma = require('./src/shared/config/prisma');
+const { connectMongo } = require('./src/shared/config/mongoose');
 const { startPassExpiryCron } = require('./src/shared/cron/passExpiry');
 const { connectRedis } = require('./src/shared/config/redis');
 
@@ -51,6 +52,8 @@ const start = async () => {
   try {
     await prisma.$connect();
     console.log('PostgreSQL connected via Prisma');
+
+    await connectMongo();
 
     await connectRedis();
 
